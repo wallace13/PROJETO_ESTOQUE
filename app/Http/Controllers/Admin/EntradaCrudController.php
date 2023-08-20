@@ -7,6 +7,7 @@ use App\Models\Entrada;
 use App\Models\Produto;
 use App\Models\Uf;
 use App\Http\Requests\EntradaRequest;
+use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
@@ -74,33 +75,32 @@ class EntradaCrudController extends CrudController
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
-        $EstoqueId = $this->crud->getCurrentEntry()->estoque_id;
-        $estoque = \App\Models\Estoque::find($EstoqueId);
-        CRUD::field([  
-            'label'     => "Produto",
-            'type'      => 'select',
-            'name'      => 'produto_id',
-            'model'     => "App\Models\Produto",
-            'attribute' => 'nome', 
-            'value'     => $estoque->produto_id, 
-            'placeholder' => 'Selecione...',
-            'options'   => (function ($query) {
-                 return $query->orderBy('nome', 'ASC')->get();
-             }),
-             'allows_null' => false,
+        $estoqueSelecionado = Estoque::find($this->crud->getCurrentEntry()->estoque_id);
+        $produtos = Produto::orderBy('id')->get();
+        $Itens = $produtos->map(function ($produto) {
+            return ['id' => $produto->id, 'name' => $produto->formatted_name];
+        })->pluck('name', 'id')->toArray();
+        asort($Itens);
+        CRUD::field([   // select_from_array
+            'name'        => 'produto_id',
+            'label'       => "Produto",
+            'type'        => 'select_from_array',
+            'value'       => $estoqueSelecionado->produto_id, 
+            'options'     => $Itens,
+            'allows_null' => false,
+            'default'     => 'one',
         ]);
     }
     public function update()
     {
         $request = $this->crud->validateRequest();
         $entrada = Entrada::find($request->id);
-        
         Entrada::where('id', $request->id)->update(
             ['quantidade' => $request->quantidade, 
              'validade' => $request->validade, 
-             'estoque_id' => $entrada->estoque_id]);
+             'estoque_id' => $entrada->id]);
         
-        $estoque = Estoque::where('id', $entrada->estoque_id)
+        $estoque = Estoque::where('id', $entrada->id)
                     ->update([
                         'qtdTotal' => $request->quantidade,
                         'produto_id' => $request->produto_id,

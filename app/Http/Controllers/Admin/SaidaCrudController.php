@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Estoque;
 use App\Models\Produto;
+use App\Models\Saida;
 use App\Http\Requests\SaidaRequest;
+use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
@@ -31,9 +33,14 @@ class SaidaCrudController extends CrudController
     protected function setupCreateOperation()
     {
         CRUD::setValidation(SaidaRequest::class);
-        $produtos = Produto::orderBy('id')->get();
-        $Itens = $produtos->map(function ($produto) {
-            return ['id' => $produto->id, 'name' => $produto->formatted_name];
+        $estoque = DB::table('estoques')
+            ->join('produtos', 'produtos.id', '=', 'estoques.produto_id')
+            ->select('produtos.*', 'estoques.*')
+            ->where('estoques.qtdTotal', '>', 0)
+            ->get();
+        $Itens = $estoque->map(function ($produto) {
+            $uf = DB::table('ufs')->select('uf')->where('id', $produto->uf_id)->get();
+            return ['id' => $produto->produto_id, 'name' => $produto->nome.' - '.$uf[0]->uf];
         })->pluck('name', 'id')->toArray();
         asort($Itens);
         CRUD::field([   // select_from_array
@@ -43,7 +50,7 @@ class SaidaCrudController extends CrudController
             'options'     => [null => 'Escolha um produto'] +$Itens,
             'allows_null' => false,
             'default'     => 'one',
-        ]);  
+        ]);
         CRUD::field([  
             'label'     => "Quantidade",
             'type'      => 'text',
@@ -56,10 +63,9 @@ class SaidaCrudController extends CrudController
         $request = $this->crud->validateRequest();
         $produto_id = $request->input('produto_id');
         $estoque = Estoque::select('id', 'qtdTotal')->where('produto_id', $produto_id)->first();
-        $total = $estoque->qtdTotal - $request->input('quantidade');
-        $estoque->update(['qtdTotal' => $total]);
+        $total = $estoque->qtdTotal - intval($request->input('quantidade'));
+        Estoque::where('id', $estoque->id)->update(['qtdTotal' => $total]);
         $request['estoque_id'] = $estoque->id;
-
         $entry = $this->crud->create($request->except(['_token', '_method'])); 
 
         return redirect("/admin/saida");
@@ -68,6 +74,47 @@ class SaidaCrudController extends CrudController
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
+
+        $estoqueSelecionado = Estoque::find($this->crud->getCurrentEntry()->estoque_id);
+        $estoque = DB::table('estoques')
+            ->join('produtos', 'produtos.id', '=', 'estoques.produto_id')
+            ->select('produtos.*', 'estoques.*')
+            ->get();
+        $Itens = $estoque->map(function ($produto) {
+            $uf = DB::table('ufs')->select('uf')->where('id', $produto->uf_id)->get();
+            return ['id' => $produto->produto_id, 'name' => $produto->nome.' - '.$uf[0]->uf];
+        })->pluck('name', 'id')->toArray();
+        asort($Itens);
+        CRUD::field([   // select_from_array
+            'name'        => 'produto_id',
+            'label'       => "Produto",
+            'type'        => 'select_from_array',
+            'value'       => $estoqueSelecionado->produto_id, 
+            'options'     => $Itens,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]);  
+    }
+    public function update()
+    {
+        $request = $this->crud->validateRequest();
+        
+        $saida = Saida::find($request->id);
+        $estoque = Estoque::where('produto_id', $request->produto_id)->get();
+        if (intval($request->quantidade) > $saida->quantidade) {
+            $total = $estoque[0]->qtdTotal - intval($request->quantidade);
+        } else {
+            $total = $saida->quantidade - intval($request->quantidade);
+        }
+        
+        Saida::where('id', $request->id)->update(
+            ['quantidade' => $request->quantidade,
+             'estoque_id' => $estoque[0]->id]);
+        
+        $estoque = Estoque::where('id', $estoque[0]->id)
+                    ->update(['qtdTotal' => $total]);
+
+        return redirect("/admin/saida");
     }
     protected function setupShowOperation()
     {
