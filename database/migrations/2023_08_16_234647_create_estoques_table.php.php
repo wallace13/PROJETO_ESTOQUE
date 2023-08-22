@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('estoques', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('produto_id'); 
-            $table->integer('qtdTotal'); 
+            $table->double('qtdTotal', 8, 2); 
+            $table->json('validades');
             $table->timestamps();
 
             $table->foreign('produto_id')->references('id')->on('produtos');

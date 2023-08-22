@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Estoque;
+use App\Models\Entrada;
 use App\Models\Produto;
 use App\Models\Saida;
 use App\Http\Requests\SaidaRequest;
@@ -35,22 +36,25 @@ class SaidaCrudController extends CrudController
         CRUD::setValidation(SaidaRequest::class);
         $estoque = DB::table('estoques')
             ->join('produtos', 'produtos.id', '=', 'estoques.produto_id')
-            ->select('produtos.*', 'estoques.*')
-            ->where('estoques.qtdTotal', '>', 0)
+            ->join('ufs', 'ufs.id', '=', 'produtos.uf_id')
+            ->join('entradas', 'entradas.estoque_id', '=', 'estoques.id')
+            ->select('ufs.uf','produtos.nome', 'entradas.id', 'entradas.validade','entradas.qtdSaidas','entradas.quantidade')
             ->get();
         $Itens = $estoque->map(function ($produto) {
-            $uf = DB::table('ufs')->select('uf')->where('id', $produto->uf_id)->get();
-            return ['id' => $produto->produto_id, 'name' => $produto->nome.' - '.$uf[0]->uf];
+            if($produto->quantidade != $produto->qtdSaidas){
+                return ['id' => $produto->id, 'name' => $produto->nome.' - '.$produto->uf.' - '.date('d/m/Y', strtotime($produto->validade))];
+            }            
         })->pluck('name', 'id')->toArray();
         asort($Itens);
         CRUD::field([   // select_from_array
-            'name'        => 'produto_id',
+            'name'        => 'estoque_id',//Aqui ele pega o id da entrada
             'label'       => "Produto",
             'type'        => 'select_from_array',
             'options'     => [null => 'Escolha um produto'] +$Itens,
             'allows_null' => false,
             'default'     => 'one',
         ]);
+        
         CRUD::field([  
             'label'     => "Quantidade",
             'type'      => 'text',
@@ -61,11 +65,27 @@ class SaidaCrudController extends CrudController
     public function store()
     {
         $request = $this->crud->validateRequest();
-        $produto_id = $request->input('produto_id');
-        $estoque = Estoque::select('id', 'qtdTotal')->where('produto_id', $produto_id)->first();
-        $total = $estoque->qtdTotal - intval($request->input('quantidade'));
-        Estoque::where('id', $estoque->id)->update(['qtdTotal' => $total]);
+
+        $idEntrada = $request->estoque_id;
+        $entrada = Entrada::where('id', $idEntrada)->first();
+        $estoque = Estoque::where('id', $entrada->estoque_id)->first();
+        
+        $totalEntrada = $entrada->quantidade - intval($request->input('quantidade'));
+        $totalEstoque = $estoque->qtdTotal - intval($request->input('quantidade'));
+
+        if($totalEntrada == 0){
+            $validades = json_decode($estoque->validades, true);
+            $indiceItem = array_search($entrada->validade, $validades);//Procura o indice
+            unset($validades[$indiceItem]); //Remove do array
+            $validades = array_values($validades); //Reorganiza os itens do array
+            Estoque::where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
+            $totalEntrada = $entrada->quantidade;
+        }
+        Entrada::where('id', $idEntrada)->update(['qtdSaidas' => $totalEntrada]);
+        Estoque::where('id', $entrada->estoque_id)->update(['qtdTotal' => $totalEstoque]);
         $request['estoque_id'] = $estoque->id;
+        $request['entrada_id'] = $entrada->id;
+
         $entry = $this->crud->create($request->except(['_token', '_method'])); 
 
         return redirect("/admin/saida");
@@ -73,46 +93,73 @@ class SaidaCrudController extends CrudController
 
     protected function setupUpdateOperation()
     {
-        $this->setupCreateOperation();
-
-        $estoqueSelecionado = Estoque::find($this->crud->getCurrentEntry()->estoque_id);
+        $saidaSelecionada = Saida::find($this->crud->getCurrentEntry()->id);
         $estoque = DB::table('estoques')
             ->join('produtos', 'produtos.id', '=', 'estoques.produto_id')
-            ->select('produtos.*', 'estoques.*')
-            ->get();
-        $Itens = $estoque->map(function ($produto) {
-            $uf = DB::table('ufs')->select('uf')->where('id', $produto->uf_id)->get();
-            return ['id' => $produto->produto_id, 'name' => $produto->nome.' - '.$uf[0]->uf];
+            ->join('ufs', 'ufs.id', '=', 'produtos.uf_id')
+            ->join('entradas', 'entradas.estoque_id', '=', 'estoques.id')
+            ->select('ufs.uf','produtos.nome', 'entradas.id', 'entradas.validade','entradas.qtdSaidas','entradas.quantidade', 'entradas.estoque_id')
+            ->get();        
+        $Itens = $estoque->map(function ($produto) use($saidaSelecionada){
+            if($produto->id == $saidaSelecionada->entrada_id){
+                return ['id' => $produto->id, 'name' => $produto->nome.' - '.$produto->uf.' - '.date('d/m/Y', strtotime($produto->validade))];
+            }            
         })->pluck('name', 'id')->toArray();
         asort($Itens);
         CRUD::field([   // select_from_array
-            'name'        => 'produto_id',
+            'name'        => 'estoque_id_disable',//Aqui ele pega o id da entrada
             'label'       => "Produto",
             'type'        => 'select_from_array',
-            'value'       => $estoqueSelecionado->produto_id, 
+            'value'       => $saidaSelecionada->entrada_id, 
             'options'     => $Itens,
             'allows_null' => false,
             'default'     => 'one',
+            'attributes' => [
+                'disabled'    => 'disabled',
+            ],
         ]);  
+        $this->setupCreateOperation();
+        CRUD::field([
+            'name'  => 'estoque_id',
+            'type'  => 'hidden',
+            'value' => $saidaSelecionada->entrada_id,
+        ]);
+
+
     }
     public function update()
     {
         $request = $this->crud->validateRequest();
-        
         $saida = Saida::find($request->id);
-        $estoque = Estoque::where('produto_id', $request->produto_id)->get();
-        if (intval($request->quantidade) > $saida->quantidade) {
-            $total = $estoque[0]->qtdTotal - intval($request->quantidade);
-        } else {
-            $total = $saida->quantidade - intval($request->quantidade);
+        $entrada = Entrada::find($request->estoque_id);//estoque_id na real é a entrada id
+        $estoque = Estoque::find($entrada->estoque_id);
+        
+        $total = 0;
+
+        if (intval($request->quantidade) < $entrada->qtdSaidas) {
+            $total = $entrada->qtdSaidas - intval($request->quantidade) ;
+            $quantidadeNova = $estoque->qtdTotal + $total;
+        }else if(intval($request->quantidade) > $entrada->qtdSaidas){
+            $total = intval($request->quantidade) - $entrada->qtdSaidas;
+            $quantidadeNova = $estoque->qtdTotal - $total;
+        }else if(intval($request->quantidade) == $entrada->qtdSaidas){
+            $quantidadeNova = $estoque->qtdTotal;
+        }
+
+        if($total == 0){
+            $validades = json_decode($estoque->validades, true);
+            $indiceItem = array_search($entrada->validade, $validades);//Procura o indice
+            unset($validades[$indiceItem]); //Remove do array
+            $validades = array_values($validades); //Reorganiza os itens do array
+        }else if(intval($request->quantidade) != $entrada->qtdSaidas){
+            $validades = json_decode($estoque->validades, true);
+            $novaValidade = $entrada->validade;
+            $validades[] = $novaValidade;
         }
         
-        Saida::where('id', $request->id)->update(
-            ['quantidade' => $request->quantidade,
-             'estoque_id' => $estoque[0]->id]);
-        
-        $estoque = Estoque::where('id', $estoque[0]->id)
-                    ->update(['qtdTotal' => $total]);
+        Saida::where('id', $request->id)->update(['quantidade' => intval($request->quantidade)]);
+        Entrada::where('id', $entrada->id)->update(['qtdSaidas' => intval($request->quantidade)]);
+        Estoque::where('id', $estoque->id)->update(['qtdTotal' => $quantidadeNova, 'validades' => json_encode($validades)]);
 
         return redirect("/admin/saida");
     }
@@ -182,5 +229,6 @@ class SaidaCrudController extends CrudController
             'visibleInModal' => true,
         ]);
     }
+
 }
 

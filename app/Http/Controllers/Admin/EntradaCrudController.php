@@ -58,17 +58,32 @@ class EntradaCrudController extends CrudController
             'name'      => 'quantidade',
         ]);        
     }
-    public function store()
-    {
+    
+    public function store(){
         $request = $this->crud->validateRequest();
-        $estoque = new Estoque;
-        $estoque->qtdTotal = $request->quantidade;
-        $estoque->produto_id = $request->produto_id;
-        $estoque->save();
-        
-        $request['estoque_id'] = $estoque->id;
-        $entry = $this->crud->create($request->except(['_token', '_method'])); 
 
+        $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
+
+        if ($estoque->exists) {
+            // Obtenha o JSON atual e converta em array
+            $validades = json_decode($estoque->validades, true);
+
+            $estoque->qtdTotal += $request->quantidade;
+            $novaValidade = $request->validade;
+            $validades[] = $novaValidade;
+
+            // Converta o array de volta para JSON
+            $estoque->validades = json_encode($validades);
+        } else {
+            $estoque->qtdTotal = $request->quantidade;
+
+            // Inicialize o campo 'validades' com um array contendo a nova validade
+            $estoque->validades = json_encode([$request->validade]);
+        }
+
+        $estoque->save();
+        $request['estoque_id'] = $estoque->id;
+        $entry = $this->crud->create($request->except(['_token', '_method']));
         return redirect("/admin/entrada");
     }
 
@@ -95,14 +110,39 @@ class EntradaCrudController extends CrudController
     {
         $request = $this->crud->validateRequest();
         $entrada = Entrada::find($request->id);
+        $estoque = Estoque::find($entrada->estoque_id);
+
+        if (intval($request->quantidade) > $entrada->quantidade) {
+            $total = intval($request->quantidade) - $entrada->quantidade;
+            $quantidadeNova = $estoque->qtdTotal + $total;
+        } else if(intval($request->quantidade) < $entrada->quantidade){
+            $total = $entrada->quantidade - intval($request->quantidade);
+            $quantidadeNova = $estoque->qtdTotal - $total;
+        } else if(intval($request->quantidade) == $entrada->quantidade){
+            $quantidadeNova = $estoque->qtdTotal;
+        }
+
+        $validades = json_decode($estoque->validades, true);
+        $indiceItem = array_search($entrada->validade, $validades);
+
+        if ($request->validade != $validades[$indiceItem]) {
+            unset($validades[$indiceItem]); //Remove do array
+            $validades = array_values($validades); //Reorganiza os itens do array
+
+            $novaValidade = $request->validade;//Pega a nova validade
+
+            $validades[] = $novaValidade; //adiciona validade ao array
+        } 
+
         Entrada::where('id', $request->id)->update(
             ['quantidade' => $request->quantidade, 
              'validade' => $request->validade, 
-             'estoque_id' => $entrada->id]);
-        
-        $estoque = Estoque::where('id', $entrada->id)
+             'estoque_id' => $estoque->id]);
+
+        $estoque = Estoque::where('id', $estoque->id)
                     ->update([
-                        'qtdTotal' => $request->quantidade,
+                        'qtdTotal' => $quantidadeNova,
+                        'validades' => json_encode($validades),
                         'produto_id' => $request->produto_id,
                     ]);
 
@@ -176,6 +216,14 @@ class EntradaCrudController extends CrudController
         CRUD::addColumn([
             'name' => 'quantidade',
             'label' => 'Quantidade',
+            'type' => 'text',
+            'searchLogic'    => true,
+            'orderable'      => true,
+            'visibleInModal' => true,
+        ]);
+        CRUD::addColumn([
+            'name' => 'qtdSaidas',
+            'label' => 'Quantidade Saidas',
             'type' => 'text',
             'searchLogic'    => true,
             'orderable'      => true,

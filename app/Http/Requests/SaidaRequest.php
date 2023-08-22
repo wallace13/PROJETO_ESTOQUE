@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Entrada;
 use App\Models\Estoque;
 use App\Models\Saida;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,24 +27,22 @@ class SaidaRequest extends FormRequest
      */
     public function rules()
     {
-        
-        $regras = [];
+        $qtdMax = 0;
         $quantidade = $this->quantidade ?? null;
         if($quantidade != null){            
-            $estoque = Estoque::where('produto_id', $this->produto_id)->get();
-            if($this->id != null && $estoque[0]->qtdTotal == 0){
+            $entrada = Entrada::where('id', $this->estoque_id)->get();
+            if($this->id != null && $entrada[0]->qtdSaidas == null){
                 $saida = Saida::where('id', $this->id)->get();
                 $qtdMax = $saida[0]->quantidade;
-            }else{
-                $qtdMax = $estoque[0]->qtdTotal;
+            }else {
+                $qtdMax = $entrada[0]->quantidade;
             }
-            $regras = [
-                'produto_id' =>  'required',
-                'quantidade' =>  "required|numeric|min:0.01|max:{$qtdMax}",
-            ];
         }
+        return [
+            'estoque_id' =>  'required',
+            'quantidade' =>  "required|numeric|min:0.01|max:{$qtdMax}",
+        ];
         
-        return $regras;
     }
 
     /**
@@ -66,11 +65,11 @@ class SaidaRequest extends FormRequest
      */
     public function messages()
     {
-        $estoque = Estoque::where('produto_id', $this->produto_id)->get();
-        if($this->id != null && $estoque[0]->qtdTotal == 0){
+        $estoque = Entrada::where('id', $this->estoque_id)->get();
+        if($this->id != null && $estoque[0]->qtdSaida == $this->qtdSaida){
             $mensagem = "A :attribute de saída não pode ser superior à quantidade da saida atual.";
         }else{
-            $mensagem = "A :attribute de saída não pode ser superior à quantidade total do estoque.";
+            $mensagem = "A :attribute de saída não pode ser superior à quantidade total da entrada no estoque.";
         }
         return [
             'required' => "O campo :attribute é obrigatorio.",

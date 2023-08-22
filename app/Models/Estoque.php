@@ -5,6 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Estoque extends Model
 {
@@ -21,13 +22,7 @@ class Estoque extends Model
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
-    protected $fillable = [
-        'produto_id', 
-        'quantidade',
-        'validade',
-        'tipo'
-    ];
-
+    protected $fillable = ['produto_id', 'qtdTotal'];
     // protected $hidden = [];
 
     /*

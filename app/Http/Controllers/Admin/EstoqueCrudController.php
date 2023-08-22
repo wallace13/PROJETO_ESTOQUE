@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Movimentacao;
+use App\Models\Entrada;
+use App\Models\Produto;
+use App\Models\Uf;
+
 use App\Http\Requests\EstoqueRequest;
+use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
@@ -35,21 +39,17 @@ class EstoqueCrudController extends CrudController
     {
         $this->setupCommonColumns();
     }
-    /*
-    protected function setupCreateOperation()
-    {
-        CRUD::setValidation(EstoqueRequest::class);
-        CRUD::setFromDb(); 
-    }
-    
-    protected function setupUpdateOperation()
-    {
-        $this->setupCreateOperation();
-    }
-    */
     protected function setupShowOperation()
     {
         $this->setupCommonColumns();
+        CRUD::addColumn([
+            'name' => 'validades',
+            'label' => 'Validades',
+            'type' => 'json',
+            'searchLogic' => true,
+            'orderable' => true,
+            'visibleInModal' => true,
+        ]);
         CRUD::addColumn([
             'name' => 'created_at',
             'label' => 'Criado em',
@@ -69,12 +69,21 @@ class EstoqueCrudController extends CrudController
     }
     protected function setupCommonColumns()
     {
+        $estoques = DB::table('produtos')
+        ->select('estoques.produto_id','produtos.nome', 'temp.qtdTotal', DB::raw('GROUP_CONCAT(entradas.validade) as validades'), 'ufs.uf')
+        ->join(DB::raw('(SELECT estoques.produto_id, SUM(estoques.qtdTotal) as qtdTotal FROM estoques
+            GROUP BY estoques.produto_id) as temp'), 'produtos.id', '=', 'temp.produto_id')
+        ->join('estoques', 'produtos.id', '=', 'estoques.produto_id')
+        ->join('entradas', 'entradas.estoque_id', '=', 'estoques.id')
+        ->join('ufs', 'ufs.id', '=', 'produtos.uf_id') 
+        ->groupBy('produtos.nome', 'temp.qtdTotal', 'ufs.uf','estoques.produto_id')
+        ->get();
         CRUD::addColumn([
             'name' => 'produto_id',
             'label' => 'Produto',
             'type' => 'text', 
             'value' => function($entry) {
-                $produto = \App\Models\Produto::find($entry->produto_id);
+                $produto = Produto::find($entry->produto_id);
                 if ($produto) {
                     return $produto->nome; 
                 }
@@ -89,9 +98,9 @@ class EstoqueCrudController extends CrudController
             'label' => 'Uf',
             'type' => 'text',
             'value' => function($entry) {
-                $ufId = \App\Models\Produto::find($entry->produto_id);
+                $ufId = Produto::find($entry->produto_id);
                 if ($ufId->uf_id) {
-                    $uf = \App\Models\Uf::find($ufId->uf_id); 
+                    $uf = Uf::find($ufId->uf_id); 
                     return $uf->uf;
                 }
                 return 'Uf não encontrado';

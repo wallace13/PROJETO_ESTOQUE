@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('estoque_id'); 
             $table->date('validade'); 
-            $table->integer('quantidade'); 
+            $table->double('quantidade', 8, 2); 
             $table->timestamps();
 
             $table->foreign('estoque_id')->references('id')->on('estoques');
