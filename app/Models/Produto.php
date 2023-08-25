@@ -39,14 +39,9 @@ class Produto extends Model
     | RELATIONS
     |--------------------------------------------------------------------------
     */
-    public function produtos()
-    {
-        return $this->belongsToMany(Estoque::class);
-    }
-
     public function ufs()
     {
-        return $this->belongsToMany(Uf::class);
+        return $this->belongsTo(Uf::class,'uf_id','id');
     }
 
     public function estoques()

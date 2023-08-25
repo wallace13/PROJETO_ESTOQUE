@@ -35,6 +35,12 @@ class Saida extends Model
     | RELATIONS
     |--------------------------------------------------------------------------
     */
+    public function estoque(){
+        return $this->belongsTo(Estoque::class,'estoque_id','id');
+    }
+    public function entrada(){
+        return $this->belongsTo(Entrada::class,'entrada_id','id');
+    }
 
     /*
     |--------------------------------------------------------------------------

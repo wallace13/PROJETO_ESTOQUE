@@ -36,7 +36,7 @@ class Uf extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function Ufs()
+    public function produtos()
     {
         return $this->hasMany(Produto::class);
     }

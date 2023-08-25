@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Entrada;
+use App\Models\Estoque;
 use App\Models\Produto;
 use App\Models\Uf;
-
 use App\Http\Requests\EstoqueRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
@@ -83,9 +83,9 @@ class EstoqueCrudController extends CrudController
             'label' => 'Produto',
             'type' => 'text', 
             'value' => function($entry) {
-                $produto = Produto::find($entry->produto_id);
-                if ($produto) {
-                    return $produto->nome; 
+                $estoque = Estoque::with('produto.ufs')->findOrFail($entry->id);
+                if ($estoque) {
+                    return $estoque->produto->nome; 
                 }
                 return 'Produto não encontrado';
             },
@@ -98,10 +98,9 @@ class EstoqueCrudController extends CrudController
             'label' => 'Uf',
             'type' => 'text',
             'value' => function($entry) {
-                $ufId = Produto::find($entry->produto_id);
-                if ($ufId->uf_id) {
-                    $uf = Uf::find($ufId->uf_id); 
-                    return $uf->uf;
+                $estoque = Estoque::with('produto.ufs')->findOrFail($entry->id);
+                if ($estoque) {
+                    return $estoque->produto->ufs->uf; 
                 }
                 return 'Uf não encontrado';
             },

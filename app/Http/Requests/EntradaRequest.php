@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Entrada;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class EntradaRequest extends FormRequest
 {
@@ -24,10 +26,16 @@ class EntradaRequest extends FormRequest
      */
     public function rules()
     {
+        if ($this->id == null) {
+            $this->qtdSaidas = 0;
+        }
         return [
             'produto_id' =>  'required',
             'quantidade' =>  'required|numeric|min:0.01',
             'validade' =>  'required',
+            'qtdSaidas' => Rule::prohibitedIf(function () {
+                return $this->qtdSaidas != 0;
+            }),
         ];
     }
 
@@ -42,6 +50,7 @@ class EntradaRequest extends FormRequest
             'produto_id'=> 'Produto',
             'quantidade'=> 'Quantidade',
             'validade'=> 'validade',
+            'qtdSaidas'=> 'Quantidade de Saidas',
         ];
     }
 
@@ -56,6 +65,7 @@ class EntradaRequest extends FormRequest
             'required' => "O campo :attribute é obrigatorio.",
             'min' => "O campo :attribute não pode ser menor que 0 e nem ser 0.",
             'numeric' => "O campo :attribute deve ser númerico.",
+            'qtdSaidas.prohibited' => 'Edição não permitida pois já foi dada saída do item.',
         ];
     }
 }

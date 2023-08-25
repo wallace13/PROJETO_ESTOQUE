@@ -35,7 +35,12 @@ class Entrada extends Model
     | RELATIONS
     |--------------------------------------------------------------------------
     */
-
+    public function estoque(){
+        return $this->belongsTo(Estoque::class,'estoque_id','id');
+    }
+    public function saidas(){
+        return $this->hasMany(Saida::class);
+    }
     /*
     |--------------------------------------------------------------------------
     | SCOPES

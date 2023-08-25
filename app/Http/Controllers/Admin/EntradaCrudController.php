@@ -59,32 +59,50 @@ class EntradaCrudController extends CrudController
         ]);        
     }
     
-    public function store(){
+    public function store()
+    {
         $request = $this->crud->validateRequest();
 
+        $request['estoque_id'] = $this->storeEstoque($request);
+        $entry = $this->crud->create($request->except(['_token', '_method']));
+
+        $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
+        return $rota;
+    }
+    
+    public function redirecionamentoRotas($saveAction,$entry){
+        if ($saveAction === 'save_and_back') {
+            return redirect("/admin/entrada");
+        } elseif ($saveAction === 'save_and_edit') {
+            return redirect("/admin/entrada/{$entry->id}/edit");
+        } elseif ($saveAction === 'save_and_preview') {
+            return redirect("/admin/entrada/{$entry->id}/show");
+        }elseif ($saveAction === 'save_and_new') {
+            return redirect("/admin/entrada/create");
+        }
+    }
+
+    public function storeEstoque($request)
+    {
         $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
 
-        if ($estoque->exists) {
-            // Obtenha o JSON atual e converta em array
-            $validades = json_decode($estoque->validades, true);
-
-            $estoque->qtdTotal += $request->quantidade;
-            $novaValidade = $request->validade;
-            $validades[] = $novaValidade;
-
-            // Converta o array de volta para JSON
-            $estoque->validades = json_encode($validades);
-        } else {
-            $estoque->qtdTotal = $request->quantidade;
-
-            // Inicialize o campo 'validades' com um array contendo a nova validade
-            $estoque->validades = json_encode([$request->validade]);
+        $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
+    
+        $validades = $estoque->decodeValidadesJSON($estoque->validades);
+        if($validades === null){
+            $validades[] = $estoque->criaArrayValidades($request->validade);
+        }else{
+            $indiceItem = $estoque->buscaValidadeNoArray($request->validade, $validades);
+        
+            if ($indiceItem === false) {
+                $validades[] = $estoque->criaArrayValidades($request->validade);
+            }
         }
 
+        $estoque->validades = $estoque->encodeValidadesJSON($validades);
         $estoque->save();
-        $request['estoque_id'] = $estoque->id;
-        $entry = $this->crud->create($request->except(['_token', '_method']));
-        return redirect("/admin/entrada");
+        
+        return $estoque->id;
     }
 
     protected function setupUpdateOperation()
@@ -105,48 +123,52 @@ class EntradaCrudController extends CrudController
             'allows_null' => false,
             'default'     => 'one',
         ]);
+        CRUD::field([  
+            'label'     => "Quantidade de saidas",
+            'type'      => 'hidden',
+            'name'      => 'qtdSaidas',
+        ]);  
     }
     public function update()
     {
         $request = $this->crud->validateRequest();
         $entrada = Entrada::find($request->id);
-        $estoque = Estoque::find($entrada->estoque_id);
 
-        if (intval($request->quantidade) > $entrada->quantidade) {
-            $total = intval($request->quantidade) - $entrada->quantidade;
-            $quantidadeNova = $estoque->qtdTotal + $total;
-        } else if(intval($request->quantidade) < $entrada->quantidade){
-            $total = $entrada->quantidade - intval($request->quantidade);
-            $quantidadeNova = $estoque->qtdTotal - $total;
-        } else if(intval($request->quantidade) == $entrada->quantidade){
-            $quantidadeNova = $estoque->qtdTotal;
-        }
-
-        $validades = json_decode($estoque->validades, true);
-        $indiceItem = array_search($entrada->validade, $validades);
-
-        if ($request->validade != $validades[$indiceItem]) {
-            unset($validades[$indiceItem]); //Remove do array
-            $validades = array_values($validades); //Reorganiza os itens do array
-
-            $novaValidade = $request->validade;//Pega a nova validade
-
-            $validades[] = $novaValidade; //adiciona validade ao array
-        } 
+        $estoque = $this->updateEstoque($entrada, $request);
 
         Entrada::where('id', $request->id)->update(
             ['quantidade' => $request->quantidade, 
              'validade' => $request->validade, 
-             'estoque_id' => $estoque->id]);
+             'estoque_id' => $estoque]);
 
-        $estoque = Estoque::where('id', $estoque->id)
-                    ->update([
-                        'qtdTotal' => $quantidadeNova,
-                        'validades' => json_encode($validades),
-                        'produto_id' => $request->produto_id,
-                    ]);
+        $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
+        return $rota;
+        
+    }
+    public function updateEstoque($entrada, $request)
+    {
+        $estoque = Estoque::find($entrada->estoque_id);
 
-        return redirect("/admin/entrada");
+        $quantidadeNova = $estoque->atualizarQuantidade($request->quantidade, $entrada->quantidade, null);
+
+        $validades = $estoque->decodeValidadesJSON($estoque->validades);
+
+        $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
+        $qtdItem = $estoque->countValidadeEntrada($entrada);
+
+        if ($indiceItem !== false && $qtdItem <= 1) {
+            $validades = $estoque->removeValidade($indiceItem, $validades);
+        }
+        $indice = $estoque->buscaValidadeNoArray($request->validade, $validades);
+
+        if ($indice === false) {
+            $validades[] = $estoque->criaArrayValidades($request->validade);
+        }
+        
+        Estoque::where('id', $estoque->id)->update([
+        'qtdTotal' => $quantidadeNova['qtdNova'],'validades' => json_encode($validades),'produto_id' => $request->produto_id]);
+        
+        return $estoque->id;
     }
     protected function setupShowOperation()
     {
@@ -175,10 +197,9 @@ class EntradaCrudController extends CrudController
             'label' => 'Produto',
             'type' => 'text', 
             'value' => function($entry) {
-                $estoque = \App\Models\Estoque::find($entry->estoque_id);
-                if ($estoque) {
-                    $produto = \App\Models\Produto::find($estoque->produto_id);
-                    return $produto->nome; 
+                $entrada = Entrada::with('estoque.produto.ufs')->findOrFail($entry->id);
+                if ($entrada) {
+                    return $entrada->estoque->produto->nome;
                 }
                 return 'Produto não encontrado no estoque';
             },
@@ -191,13 +212,9 @@ class EntradaCrudController extends CrudController
             'label' => 'Uf',
             'type' => 'text',
             'value' => function($entry) {
-                $estoque = \App\Models\Estoque::find($entry->estoque_id);
-                if ($estoque) {
-                    $produto = \App\Models\Produto::find($estoque->produto_id);
-                    if($produto){
-                        $uf = \App\Models\Uf::find($produto->uf_id);
-                        return $uf->uf; 
-                    }    
+                $entrada = Entrada::with('estoque.produto.ufs')->findOrFail($entry->id);
+                if ($entrada) {
+                    return $entrada->estoque->produto->ufs->uf; 
                 }
                 return 'Uf do Produto não encontrada';
             },

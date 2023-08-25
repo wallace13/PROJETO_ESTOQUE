@@ -30,23 +30,79 @@ class Estoque extends Model
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
+    public function decodeValidadesJSON($validades){
+        return json_decode($validades, true);
+    }
+    public function encodeValidadesJSON($validades){
+        return json_encode($validades);
+    }
+    public function criaArrayValidades($validadeRequest) {
+        return $validadeRequest;
+    }
+    public function buscaValidadeNoArray($validadeRequest, $validades) {
+        return array_search($validadeRequest, $validades);
+    }
+    public function countValidadeEntrada($request) {
+        
+        $entradas = Entrada::all();
+        $count = 0;
+        $idProduto = (intval($request->produto_id) == null) ? $request->estoque->produto_id : intval($request->produto_id);
+        foreach ($entradas as $item) {
+            if ($item->validade === $request->validade && $idProduto === $item->estoque->produto_id && $item->qtdSaidas != $item->quantidade) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+    public function removeValidade($indice, $validades) {
+        unset($validades[$indice]);
+        return array_values($validades);
+    }
+    public function atualizarQuantidade($requestQuantidade, $entradaQuantidade, $entradaQtdSaidas){
+        $requestQuantidade = intval($requestQuantidade);
+        $total = 0;
+        if($entradaQuantidade !== null){
+            if ($requestQuantidade > $entradaQuantidade) {
+                $total = $requestQuantidade - $entradaQuantidade;
+                $quantidadeNova = $this->qtdTotal += $total;
+            } else if($requestQuantidade < $entradaQuantidade){
+                $total = $entradaQuantidade - $requestQuantidade;
+                $quantidadeNova = $this->qtdTotal -= $total;
+            } else if($requestQuantidade == $entradaQuantidade){
+                $quantidadeNova = $this->qtdTotal;
+            }
+        }
+        if($entradaQtdSaidas !== null){
+            if ($requestQuantidade < $entradaQtdSaidas) {
+                $total = $entradaQtdSaidas - $requestQuantidade  ;
+                $quantidadeNova = $this->qtdTotal += $total;
+            }else if($requestQuantidade  > $entradaQtdSaidas){
+                $total = $requestQuantidade - $entradaQtdSaidas;
+                $quantidadeNova = $this->qtdTotal -= $total;
+            }else if($requestQuantidade  == $entradaQtdSaidas){
+                $quantidadeNova = $this->qtdTotal;
+            }
+        }
+
+        return ["qtdNova" => $quantidadeNova,"total" => $total];        
+    }
     /*
     |--------------------------------------------------------------------------
     | RELATIONS
     |--------------------------------------------------------------------------
     */
-    public function produtos()
-    {
-        return $this->hasMany(Produto::class);
+    public function produto(){
+        return $this->belongsTo(Produto::class,'produto_id','id');
     }
-    public function estoque()
+    public function entradas()
     {
-        return $this->belongsToMany(Movimentacao::class);
+        return $this->hasMany(Entrada::class);
     }
-    public function produto()
+    public function saidas()
     {
-        return $this->belongsTo(Produto::class, 'produto_id');
+        return $this->hasMany(Saida::class);
     }
+    
     /*
     |--------------------------------------------------------------------------
     | SCOPES
