@@ -41,6 +41,11 @@ class Uf extends Model
         return $this->hasMany(Produto::class);
     }
 
+    public function users()
+    {
+        return $this->belongsTo(User::class,'user_id','id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

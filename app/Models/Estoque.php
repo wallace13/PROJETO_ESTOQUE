@@ -58,30 +58,41 @@ class Estoque extends Model
         unset($validades[$indice]);
         return array_values($validades);
     }
-    public function atualizarQuantidade($requestQuantidade, $entradaQuantidade, $entradaQtdSaidas){
+    public function atualizarQuantidadeEntrada($requestQuantidade, $entradaQuantidade){
         $requestQuantidade = intval($requestQuantidade);
-        $total = 0;
-        if($entradaQuantidade !== null){
-            if ($requestQuantidade > $entradaQuantidade) {
-                $total = $requestQuantidade - $entradaQuantidade;
-                $quantidadeNova = $this->qtdTotal += $total;
-            } else if($requestQuantidade < $entradaQuantidade){
-                $total = $entradaQuantidade - $requestQuantidade;
-                $quantidadeNova = $this->qtdTotal -= $total;
-            } else if($requestQuantidade == $entradaQuantidade){
-                $quantidadeNova = $this->qtdTotal;
-            }
+        
+        if ($requestQuantidade > $entradaQuantidade) {
+            $total = $requestQuantidade - $entradaQuantidade;
+            $quantidadeNova = $this->qtdTotal += $total;
+        } else if($requestQuantidade < $entradaQuantidade){
+            $total = $entradaQuantidade - $requestQuantidade;
+            $quantidadeNova = $this->qtdTotal -= $total;
+        } else if($requestQuantidade == $entradaQuantidade){
+            $quantidadeNova = $this->qtdTotal;
         }
-        if($entradaQtdSaidas !== null){
-            if ($requestQuantidade < $entradaQtdSaidas) {
-                $total = $entradaQtdSaidas - $requestQuantidade  ;
-                $quantidadeNova = $this->qtdTotal += $total;
-            }else if($requestQuantidade  > $entradaQtdSaidas){
-                $total = $requestQuantidade - $entradaQtdSaidas;
-                $quantidadeNova = $this->qtdTotal -= $total;
-            }else if($requestQuantidade  == $entradaQtdSaidas){
-                $quantidadeNova = $this->qtdTotal;
-            }
+
+        return $quantidadeNova;        
+    }
+    
+    public function atualizarQuantidadeSaida($requestQuantidade, $saidaQuantidade){
+        $requestQuantidade = intval($requestQuantidade);
+        $quantidadeNova = 0;
+        $total = 0;
+
+        if ($requestQuantidade < $saidaQuantidade) {
+            $total = $saidaQuantidade - $requestQuantidade;
+            $quantidadeNova = $this->qtdTotal += $total;
+        }
+        
+
+        if ($requestQuantidade > $saidaQuantidade) {
+            $subtotal = $requestQuantidade - $saidaQuantidade;
+            $total = $subtotal + $saidaQuantidade;
+            $quantidadeNova = $this->qtdTotal -= $subtotal;
+        }
+
+        if($requestQuantidade == $saidaQuantidade){
+            $quantidadeNova = $this->qtdTotal;
         }
 
         return ["qtdNova" => $quantidadeNova,"total" => $total];        

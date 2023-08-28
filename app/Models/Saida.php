@@ -41,6 +41,9 @@ class Saida extends Model
     public function entrada(){
         return $this->belongsTo(Entrada::class,'entrada_id','id');
     }
+    public function users(){
+        return $this->belongsTo(User::class,'user_id','id');
+    }
 
     /*
     |--------------------------------------------------------------------------

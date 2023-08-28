@@ -8,11 +8,6 @@ use App\Http\Requests\ProdutoRequest;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
-/**
- * Class ProdutoCrudController
- * @package App\Http\Controllers\Admin
- * @property-read \Backpack\CRUD\app\Library\CrudPanel\CrudPanel $crud
- */
 class ProdutoCrudController extends CrudController
 {
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
@@ -21,11 +16,6 @@ class ProdutoCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
-    /**
-     * Configure the CrudPanel object. Apply settings to all operations.
-     * 
-     * @return void
-     */
     public function setup()
     {
         CRUD::setModel(\App\Models\Produto::class);
@@ -33,29 +23,16 @@ class ProdutoCrudController extends CrudController
         CRUD::setEntityNameStrings('produto', 'produtos');
     }
 
-    /**
-     * Define what happens when the List operation is loaded.
-     * 
-     * @see  https://backpackforlaravel.com/docs/crud-operation-list-entries
-     * @return void
-     */
     protected function setupListOperation()
     {
         $this->setupCommonColumns();
     }
 
-    /**
-     * Define what happens when the Create operation is loaded.
-     * 
-     * @see https://backpackforlaravel.com/docs/crud-operation-create
-     * @return void
-     */
     protected function setupCreateOperation()
     {
         CRUD::setValidation(ProdutoRequest::class);
         $ufs = Uf::All()->pluck('uf', 'id')->toArray();
         asort($ufs);
-        
         CRUD::field('nome')->type('text')->label('Nome');
         CRUD::field([   // select_from_array
             'name'        => 'uf_id',
@@ -65,22 +42,35 @@ class ProdutoCrudController extends CrudController
             'allows_null' => false,
             'default'     => 'one',
         ]);
+        CRUD::field([   
+            'name'        => 'user_id',
+            'label'       => "Usuario",
+            'type'        => 'hidden',
+            'value' => backpack_auth()->user()->id,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]);
     }
 
-    /**
-     * Define what happens when the Update operation is loaded.
-     * 
-     * @see https://backpackforlaravel.com/docs/crud-operation-update
-     * @return void
-     */
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
     }
     protected function setupShowOperation()
     {
-        //CRUD::setFromDb(); 
         $this->setupCommonColumns();
+        CRUD::addColumn([
+            'name' => 'user_id',
+            'label' => 'Criado por',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                $user = Produto::with('users')->findOrFail($entry->id);
+                if ($user) {
+                    return $user->users->name; 
+                }
+                return 'Usuário não encontrada';
+            },
+        ]);
         CRUD::addColumn([
             'name' => 'created_at',
             'label' => 'Criado em',

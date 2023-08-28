@@ -14,10 +14,11 @@ return new class extends Migration
         Schema::create('entradas', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('estoque_id'); 
+            $table->unsignedBigInteger('user_id'); 
             $table->date('validade'); 
             $table->double('quantidade', 8, 2); 
             $table->timestamps();
-
+            $table->foreign('user_id')->references('id')->on('users'); 
             $table->foreign('estoque_id')->references('id')->on('estoques');
         }); 
     }

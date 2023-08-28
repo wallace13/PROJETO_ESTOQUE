@@ -39,13 +39,15 @@ class Produto extends Model
     | RELATIONS
     |--------------------------------------------------------------------------
     */
-    public function ufs()
-    {
+    public function ufs(){
         return $this->belongsTo(Uf::class,'uf_id','id');
     }
 
-    public function estoques()
-    {
+    public function users(){
+        return $this->belongsTo(User::class,'user_id','id');
+    }
+
+    public function estoques(){
         return $this->hasMany(Estoque::class);
     }
 

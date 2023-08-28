@@ -41,6 +41,9 @@ class Entrada extends Model
     public function saidas(){
         return $this->hasMany(Saida::class);
     }
+    public function users(){
+        return $this->belongsTo(User::class,'user_id','id');
+    }
     /*
     |--------------------------------------------------------------------------
     | SCOPES

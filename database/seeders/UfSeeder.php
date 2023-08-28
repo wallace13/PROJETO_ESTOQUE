@@ -14,15 +14,15 @@ class UfSeeder extends Seeder
     public function run(): void
     {
         $ufs = [
-            ['uf' => 'KG'],
-            ['uf' => 'LT'],
-            ['uf' => 'LI'],
-            ['uf' => 'PCT'],
-            ['uf' => 'CX'],
-            ['uf' => 'UN'],
-            ['uf' => 'DZ'],
-            ['uf' => 'BD'],
-            ['uf' => 'SC'],
+            ['uf' => 'KG','user_id' => 1],
+            ['uf' => 'LT','user_id' => 1],
+            ['uf' => 'LI','user_id' => 1],
+            ['uf' => 'PCT','user_id' => 1],
+            ['uf' => 'CX','user_id' => 1],
+            ['uf' => 'UN','user_id' => 1],
+            ['uf' => 'DZ','user_id' => 1],
+            ['uf' => 'BD','user_id' => 1],
+            ['uf' => 'SC','user_id' => 1],
         ];
     
         DB::table('ufs')->insert($ufs);
