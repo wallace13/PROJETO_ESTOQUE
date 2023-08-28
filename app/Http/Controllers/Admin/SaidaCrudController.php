@@ -86,10 +86,11 @@ class SaidaCrudController extends CrudController
                     $validades = $estoque->removeValidade($indiceItem, $validades);
                 }
                 Estoque::where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
-                $totalEntrada = $entrada->quantidade;
+                $qtdSaidas = $entrada->quantidade;
+            }else{
+                $qtdSaidas = $entrada->qtdSaidas + intval($request->input('quantidade'));
             }
-            
-            Entrada::where('id', $idEntrada)->update(['qtdSaidas' => $totalEntrada]);
+            Entrada::where('id', $idEntrada)->update(['qtdSaidas' => $qtdSaidas]);
             Estoque::where('id', $entrada->estoque_id)->update(['qtdTotal' => $totalEstoque]);
             $request['estoque_id'] = $estoque->id;
             $request['entrada_id'] = $entrada->id;
@@ -167,11 +168,12 @@ class SaidaCrudController extends CrudController
             }
 
             if (intval($request->quantidade) < $saida->quantidade) {
-                $qtdSaidas = $entrada->qtdSaidas-intval($request->quantidade);
+                $subtotal = $saida->quantidade - intval($request->quantidade);
+                $qtdSaidas = $entrada->qtdSaidas - $subtotal;
             } else {
                 $qtdSaidas = $entrada->qtdSaidas+(intval($request->quantidade) - $saida->quantidade);
             }
-       
+           
             Saida::where('id', $request->id)->update(['quantidade' => intval($request->quantidade)]);
             Entrada::where('id', $entrada->id)->update(['qtdSaidas' => $qtdSaidas]);
             Estoque::where('id', $estoque->id)->update(['qtdTotal' => $quantidadeNova['qtdNova'], 'validades' => json_encode($validades)]);

@@ -32,10 +32,15 @@ class SaidaRequest extends FormRequest
         if($quantidade != null){            
             $entrada = Entrada::where('id', $this->estoque_id)->get();
             if($this->id != null){
-                //$saida = Saida::where('id', $this->id)->get();
-                $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas;
+                $saida = Saida::where('id', $this->id)->get();
+                if (intval($quantidade) > $saida[0]->quantidade) {
+                    $qtdMax = ($entrada[0]->quantidade  - $entrada[0]->qtdSaidas) + $saida[0]->quantidade;
+                }else {
+                    $subtotal = $saida[0]->quantidade - intval($quantidade);
+                    $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas + $subtotal;
+                }
             }else {
-                $qtdMax = $entrada[0]->quantidade;
+                $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas;
             }
         }
         return [
