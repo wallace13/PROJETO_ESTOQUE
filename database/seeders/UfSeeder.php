@@ -14,15 +14,16 @@ class UfSeeder extends Seeder
     public function run(): void
     {
         $ufs = [
-            ['uf' => 'KG','user_id' => 1],
-            ['uf' => 'LT','user_id' => 1],
-            ['uf' => 'LI','user_id' => 1],
-            ['uf' => 'PCT','user_id' => 1],
-            ['uf' => 'CX','user_id' => 1],
-            ['uf' => 'UN','user_id' => 1],
-            ['uf' => 'DZ','user_id' => 1],
-            ['uf' => 'BD','user_id' => 1],
-            ['uf' => 'SC','user_id' => 1],
+            ['descricao' => 'Balde','uf' => 'BD','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Caixa','uf' => 'CX','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Dúzia','uf' => 'DZ','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Frasco','uf' => 'FRC','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Kilograma','uf' => 'KG','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Lata','uf' => 'LT','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Litro','uf' => 'LI','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Pacote','uf' => 'PCT','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Saco','uf' => 'SC','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
+            ['descricao' => 'Unidade','uf' => 'UN','user_id' => 1,'created_at' => date("Y-m-d H:i:s"),'updated_at' => date("Y-m-d H:i:s")],
         ];
     
         DB::table('ufs')->insert($ufs);

@@ -87,8 +87,13 @@ class UfCrudController extends CrudController
     protected function setupCommonColumns()
     {
         CRUD::addColumn([
-            'name' => 'uf',
+            'name' => 'descricao',
             'label' => 'Unidade de Fornecimento',
+            'type' => 'text', 
+        ]);
+        CRUD::addColumn([
+            'name' => 'uf',
+            'label' => 'Sigla',
             'type' => 'text', 
         ]);
     }
