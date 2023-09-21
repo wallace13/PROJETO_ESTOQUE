@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Uf;
 use App\Http\Requests\UfRequest;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -19,11 +20,6 @@ class UfCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
-    /**
-     * Configure the CrudPanel object. Apply settings to all operations.
-     * 
-     * @return void
-     */
     public function setup()
     {
         CRUD::setModel(\App\Models\Uf::class);
@@ -31,42 +27,74 @@ class UfCrudController extends CrudController
         CRUD::setEntityNameStrings('Unidade de Fornecimento', 'Unidade de Fornecimento');
     }
 
-    /**
-     * Define what happens when the List operation is loaded.
-     * 
-     * @see  https://backpackforlaravel.com/docs/crud-operation-list-entries
-     * @return void
-     */
     protected function setupListOperation()
     {
-        CRUD::setFromDb(); // set columns from db columns.
-
-        /**
-         * Columns can be defined using the fluent syntax:
-         * - CRUD::column('price')->type('number');
-         */
+        $this->setupCommonColumns();
     }
 
-    /**
-     * Define what happens when the Create operation is loaded.
-     * 
-     * @see https://backpackforlaravel.com/docs/crud-operation-create
-     * @return void
-     */
     protected function setupCreateOperation()
     {
         CRUD::setValidation(UfRequest::class);
         CRUD::setFromDb(); 
+        CRUD::field([   
+            'name'        => 'user_id',
+            'label'       => "Usuario",
+            'type'        => 'hidden',
+            'value' => backpack_auth()->user()->id,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]);
     }
 
-    /**
-     * Define what happens when the Update operation is loaded.
-     * 
-     * @see https://backpackforlaravel.com/docs/crud-operation-update
-     * @return void
-     */
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
+    }
+
+    protected function setupShowOperation()
+    {
+        $this->setupCommonColumns();
+        CRUD::addColumn([
+            'name' => 'user_id',
+            'label' => 'Criado por',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                $uf = Uf::with('users')->findOrFail($entry->id);
+                if ($uf) {
+                    return $uf->users->name; 
+                }
+                return 'Usuário não encontrada';
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'created_at',
+            'label' => 'Criado em',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                return date('d/m/Y H:i', strtotime($entry->created_at));
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'updated_at',
+            'label' => 'Última Edição',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                return date('d/m/Y H:i', strtotime($entry->updated_at));
+            },
+        ]);
+
+    }
+    protected function setupCommonColumns()
+    {
+        CRUD::addColumn([
+            'name' => 'descricao',
+            'label' => 'Unidade de Fornecimento',
+            'type' => 'text', 
+        ]);
+        CRUD::addColumn([
+            'name' => 'uf',
+            'label' => 'Sigla',
+            'type' => 'text', 
+        ]);
     }
 }

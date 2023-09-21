@@ -6,11 +6,15 @@ use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLogger;
 
 class Estoque extends Model
 {
     use CrudTrait;
     use HasFactory;
+
+    protected static $logName = 'estoque';
+    protected static $logFillable = true;
 
     /*
     |--------------------------------------------------------------------------
@@ -58,33 +62,65 @@ class Estoque extends Model
         unset($validades[$indice]);
         return array_values($validades);
     }
-    public function atualizarQuantidade($requestQuantidade, $entradaQuantidade, $entradaQtdSaidas){
+    public function atualizarQuantidadeEntrada($requestQuantidade, $entradaQuantidade){
         $requestQuantidade = intval($requestQuantidade);
-        $total = 0;
-        if($entradaQuantidade !== null){
-            if ($requestQuantidade > $entradaQuantidade) {
-                $total = $requestQuantidade - $entradaQuantidade;
-                $quantidadeNova = $this->qtdTotal += $total;
-            } else if($requestQuantidade < $entradaQuantidade){
-                $total = $entradaQuantidade - $requestQuantidade;
-                $quantidadeNova = $this->qtdTotal -= $total;
-            } else if($requestQuantidade == $entradaQuantidade){
-                $quantidadeNova = $this->qtdTotal;
-            }
+        
+        if ($requestQuantidade > $entradaQuantidade) {
+            $total = $requestQuantidade - $entradaQuantidade;
+            $quantidadeNova = $this->qtdTotal += $total;
+        } else if($requestQuantidade < $entradaQuantidade){
+            $total = $entradaQuantidade - $requestQuantidade;
+            $quantidadeNova = $this->qtdTotal -= $total;
+        } else if($requestQuantidade == $entradaQuantidade){
+            $quantidadeNova = $this->qtdTotal;
         }
-        if($entradaQtdSaidas !== null){
-            if ($requestQuantidade < $entradaQtdSaidas) {
-                $total = $entradaQtdSaidas - $requestQuantidade  ;
-                $quantidadeNova = $this->qtdTotal += $total;
-            }else if($requestQuantidade  > $entradaQtdSaidas){
-                $total = $requestQuantidade - $entradaQtdSaidas;
-                $quantidadeNova = $this->qtdTotal -= $total;
-            }else if($requestQuantidade  == $entradaQtdSaidas){
-                $quantidadeNova = $this->qtdTotal;
-            }
+
+        return $quantidadeNova;        
+    }
+    
+    public function atualizarQuantidadeSaida($requestQuantidade, $saidaQuantidade){
+        $requestQuantidade = intval($requestQuantidade);
+        $quantidadeNova = 0;
+        $total = 0;
+
+        if ($requestQuantidade < $saidaQuantidade) {
+            $total = $saidaQuantidade - $requestQuantidade;
+            $quantidadeNova = $this->qtdTotal += $total;
+        }
+        
+
+        if ($requestQuantidade > $saidaQuantidade) {
+            $subtotal = $requestQuantidade - $saidaQuantidade;
+            $total = $subtotal + $saidaQuantidade;
+            $quantidadeNova = $this->qtdTotal -= $subtotal;
+        }
+
+        if($requestQuantidade == $saidaQuantidade){
+            $quantidadeNova = $this->qtdTotal;
         }
 
         return ["qtdNova" => $quantidadeNova,"total" => $total];        
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        // Exemplo de registro de atividade no método 'created'
+        static::created(function ($estoque) {
+            $causador = backpack_auth()->user();
+            $eventName = 'created';
+            $descricao = "Nova estoque criada por {$causador->name}";
+            ActivityLogger::logActivity($estoque, $eventName, $causador, $descricao,static::$logName,$estoque->attributes);
+        });
+
+        // Exemplo de registro de atividade no método 'updated'
+        static::updated(function ($estoque) {
+            $causador = backpack_auth()->user();
+            $eventName = 'updated';
+            $descricao = "Estoque atualizada por {$causador->name}";
+            ActivityLogger::logActivity($estoque, $eventName, $causador, $descricao,static::$logName,$estoque->attributes);
+        });
+
     }
     /*
     |--------------------------------------------------------------------------

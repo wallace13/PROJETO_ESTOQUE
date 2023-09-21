@@ -37,7 +37,7 @@ class SaidaCrudController extends CrudController
         $produtos = Entrada::with('estoque.produto.ufs')->get();
         $Itens = $produtos->map(function ($produto) {
             if($produto->quantidade != $produto->qtdSaidas){
-                return ['id' => $produto->id, 'name' => $produto->estoque->produto->nome.' - '.$produto->estoque->produto->ufs->uf.' - '.date('d/m/Y', strtotime($produto->validade))];
+                return ['id' => $produto->id, 'name' => $produto->estoque->produto->nome.' - '.$produto->estoque->produto->ufs->uf.' - '.date('d/m/Y', strtotime($produto->validade)).' - QTD: '.($produto->quantidade-$produto->qtdSaidas)];
             }            
         })->pluck('name', 'id')->toArray();
         asort($Itens);
@@ -55,39 +55,55 @@ class SaidaCrudController extends CrudController
             'type'      => 'text',
             'name'      => 'quantidade',
         ]);     
+        CRUD::field([   
+            'name'        => 'user_id',
+            'label'       => "Usuario",
+            'type'        => 'hidden',
+            'value' => backpack_auth()->user()->id,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]); 
     }
 
     public function store()
     {
-        $request = $this->crud->validateRequest();
+        DB::beginTransaction();// Inicia a transação do banco de dados
+        try {
+            $request = $this->crud->validateRequest();
 
-        $idEntrada = $request->estoque_id;
-        $entrada = Entrada::where('id', $idEntrada)->first();
-        $estoque = Estoque::where('id', $entrada->estoque_id)->first();
-        
-        $totalEntrada = $entrada->quantidade - intval($request->input('quantidade'));
-        $totalEstoque = $estoque->qtdTotal - intval($request->input('quantidade'));
+            $idEntrada = $request->estoque_id;
+            $entrada = Entrada::where('id', $idEntrada)->first();
+            $estoque = Estoque::where('id', $entrada->estoque_id)->first();
+            
+            $totalEntrada = $entrada->quantidade - $entrada->qtdSaidas - intval($request->input('quantidade'));
+            $totalEstoque = $estoque->qtdTotal - intval($request->input('quantidade'));
 
-        if($totalEntrada == 0){
-            $validades = $estoque->decodeValidadesJSON($estoque->validades);
-            $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-            $qtdValidadesEntrada = $estoque->countValidadeEntrada($entrada);
-            if ($qtdValidadesEntrada <= 1) {
-                $validades = $estoque->removeValidade($indiceItem, $validades);
+            if($totalEntrada == 0){
+                $validades = $estoque->decodeValidadesJSON($estoque->validades);
+                $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
+                $qtdValidadesEntrada = $estoque->countValidadeEntrada($entrada);
+                if ($qtdValidadesEntrada <= 1) {
+                    $validades = $estoque->removeValidade($indiceItem, $validades);
+                }
+                Estoque::where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
+                $qtdSaidas = $entrada->quantidade;
+            }else{
+                $qtdSaidas = $entrada->qtdSaidas + intval($request->input('quantidade'));
             }
-            Estoque::where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
-            $totalEntrada = $entrada->quantidade;
+            Entrada::where('id', $idEntrada)->update(['qtdSaidas' => $qtdSaidas]);
+            Estoque::where('id', $entrada->estoque_id)->update(['qtdTotal' => $totalEstoque]);
+            $request['estoque_id'] = $estoque->id;
+            $request['entrada_id'] = $entrada->id;
+
+            $entry = $this->crud->create($request->except(['_token', '_method'])); 
+
+            DB::commit();// Se tudo correu bem, commit na transação
+            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
+            return $rota;
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
         }
-
-        Entrada::where('id', $idEntrada)->update(['qtdSaidas' => $totalEntrada]);
-        Estoque::where('id', $entrada->estoque_id)->update(['qtdTotal' => $totalEstoque]);
-        $request['estoque_id'] = $estoque->id;
-        $request['entrada_id'] = $entrada->id;
-
-        $entry = $this->crud->create($request->except(['_token', '_method'])); 
-
-        $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
-        return $rota;
     }
 
     public function redirecionamentoRotas($saveAction,$entry){
@@ -128,37 +144,63 @@ class SaidaCrudController extends CrudController
     }
     public function update()
     {
-        $request = $this->crud->validateRequest();
-        $saida = Saida::find($request->id);
-        $entrada = Entrada::find($request->estoque_id);//estoque_id na real é a entrada id
-        $estoque = Estoque::find($entrada->estoque_id);
+        DB::beginTransaction();// Inicia a transação do banco de dados
+        try {
+            $request = $this->crud->validateRequest();
+            $saida = Saida::find($request->id);
+            $entrada = Entrada::find($request->estoque_id);//estoque_id na real é a entrada id
+            $estoque = Estoque::find($entrada->estoque_id);
 
-        $quantidadeNova = $estoque->atualizarQuantidade($request->quantidade, null, $entrada->qtdSaidas);
-        
-        $validades = $estoque->decodeValidadesJSON($estoque->validades);
-        
-        $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-        if($quantidadeNova['total'] == 0){
-            $qtdValidadesEntrada = $estoque->countValidadeEntrada($entrada);
-            if ($qtdValidadesEntrada <= 1) {
-                $validades = $estoque->removeValidade($indiceItem, $validades);
+            $quantidadeNova = $estoque->atualizarQuantidadeSaida($request->quantidade, $saida->quantidade);
+            
+            $validades = $estoque->decodeValidadesJSON($estoque->validades);
+            
+            $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
+            if($quantidadeNova['total'] == 0){
+                $qtdValidadesEntrada = $estoque->countValidadeEntrada($entrada);
+                if ($qtdValidadesEntrada <= 1) {
+                    $validades = $estoque->removeValidade($indiceItem, $validades);
+                }
+            }else if(intval($request->quantidade) != $entrada->qtdSaidas){
+                if ($indiceItem === false) {
+                    $validades[] = $estoque->criaArrayValidades($entrada->validade);
+                }
             }
-        }else if(intval($request->quantidade) != $entrada->qtdSaidas){
-            if ($indiceItem === false) {
-                $validades[] = $estoque->criaArrayValidades($entrada->validade);
+
+            if (intval($request->quantidade) < $saida->quantidade) {
+                $subtotal = $saida->quantidade - intval($request->quantidade);
+                $qtdSaidas = $entrada->qtdSaidas - $subtotal;
+            } else {
+                $qtdSaidas = $entrada->qtdSaidas+(intval($request->quantidade) - $saida->quantidade);
             }
+           
+            Saida::where('id', $request->id)->update(['quantidade' => intval($request->quantidade)]);
+            Entrada::where('id', $entrada->id)->update(['qtdSaidas' => $qtdSaidas]);
+            Estoque::where('id', $estoque->id)->update(['qtdTotal' => $quantidadeNova['qtdNova'], 'validades' => json_encode($validades)]);
+
+            DB::commit();// Se tudo correu bem, commit na transação
+            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
+            return $rota;
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
         }
-        
-        Saida::where('id', $request->id)->update(['quantidade' => intval($request->quantidade)]);
-        Entrada::where('id', $entrada->id)->update(['qtdSaidas' => intval($request->quantidade)]);
-        Estoque::where('id', $estoque->id)->update(['qtdTotal' => $quantidadeNova['qtdNova'], 'validades' => json_encode($validades)]);
-
-        $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
-        return $rota;
     }
     protected function setupShowOperation()
     {
         $this->setupCommonColumns();
+        CRUD::addColumn([
+            'name' => 'user_id',
+            'label' => 'Criado por',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                $user = Saida::with('users')->findOrFail($entry->id);
+                if ($user) {
+                    return $user->users->name; 
+                }
+                return 'Usuário não encontrada';
+            },
+        ]);
         CRUD::addColumn([
             'name' => 'created_at',
             'label' => 'Criado em',

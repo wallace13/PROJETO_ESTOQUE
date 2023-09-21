@@ -1,0 +1,54 @@
+[33mcommit efed25e4b29cd5f848943fd42bdb7a85a27dda23[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Merge: a80196a 2693b17
+Author: Wallace Sales <49043987+wallace13@users.noreply.github.com>
+Date:   Thu Sep 21 00:17:50 2023 -0300
+
+    Merge branch 'main' of https://github.com/wallace13/PROJETO_ESTOQUE
+
+[33mcommit a80196ac7cb9191ca247ada2f5652fcee38d4a14[m
+Author: Wallace Sales <49043987+wallace13@users.noreply.github.com>
+Date:   Thu Sep 21 00:14:51 2023 -0300
+
+    Activity Log
+
+[33mcommit 2693b178cfd10a38c6a3454ce77f5845daf94083[m
+Author: Wallace Sales <49043987+wallace13@users.noreply.github.com>
+Date:   Thu Sep 21 00:14:51 2023 -0300
+
+    Sua mensagem de commit aqui
+
+[33mcommit fd0c24f856ef1bf0ac415166e5a0d4cf2108d890[m
+Author: wallace13 <wsalesg@hotmail.com>
+Date:   Mon Aug 28 09:58:08 2023 -0300
+
+    Correção de Saidas
+
+[33mcommit 057bb555e58291b9739b54ae32bf0aa31e1e5b0a[m
+Author: wallace13 <wsalesg@hotmail.com>
+Date:   Mon Aug 28 09:05:50 2023 -0300
+
+    Refactor Migrate Add User_id
+
+[33mcommit 46951565cdb4f0e9c62c639823cac7a457393148[m
+Author: wallace13 <wsalesg@hotmail.com>
+Date:   Fri Aug 25 12:57:19 2023 -0300
+
+    Refactor_Entrada_Saida_EstoqueValidade
+
+[33mcommit fb86e5933a4b25d80cb3f6be1e04822b9eabffbc[m
+Author: wallace13 <wsalesg@hotmail.com>
+Date:   Tue Aug 22 15:12:33 2023 -0300
+
+    Entrada_Saida_Update
+
+[33mcommit f28fe91ff2bb19c14ea7f1cf80527c75b4a663b1[m
+Author: wallace13 <wsalesg@hotmail.com>
+Date:   Sat Aug 19 23:45:24 2023 -0300
+
+    Registro_Entrada_Saida
+
+[33mcommit eb199ac275e7167e964ad3253a0008cb734d00a0[m
+Author: wallace13 <wsalesg@hotmail.com>
+Date:   Fri Aug 18 20:13:19 2023 -0300
+
+    Projeto_Estoque

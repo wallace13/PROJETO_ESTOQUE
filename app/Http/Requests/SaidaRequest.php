@@ -31,11 +31,16 @@ class SaidaRequest extends FormRequest
         $quantidade = $this->quantidade ?? null;
         if($quantidade != null){            
             $entrada = Entrada::where('id', $this->estoque_id)->get();
-            if($this->id != null && $entrada[0]->qtdSaidas == null){
+            if($this->id != null){
                 $saida = Saida::where('id', $this->id)->get();
-                $qtdMax = $saida[0]->quantidade;
+                if (intval($quantidade) > $saida[0]->quantidade) {
+                    $qtdMax = ($entrada[0]->quantidade  - $entrada[0]->qtdSaidas) + $saida[0]->quantidade;
+                }else {
+                    $subtotal = $saida[0]->quantidade - intval($quantidade);
+                    $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas + $subtotal;
+                }
             }else {
-                $qtdMax = $entrada[0]->quantidade;
+                $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas;
             }
         }
         return [
@@ -67,7 +72,7 @@ class SaidaRequest extends FormRequest
     {
         $estoque = Entrada::where('id', $this->estoque_id)->get();
         if($this->id != null && $estoque[0]->qtdSaida == $this->qtdSaida){
-            $mensagem = "A :attribute de saída não pode ser superior à quantidade da saida atual.";
+            $mensagem = "A :attribute de saída não pode ser superior à quantidade da saida disponivel.";
         }else{
             $mensagem = "A :attribute de saída não pode ser superior à quantidade total da entrada no estoque.";
         }

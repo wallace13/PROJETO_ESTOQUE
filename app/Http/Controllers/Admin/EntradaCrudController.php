@@ -56,32 +56,36 @@ class EntradaCrudController extends CrudController
             'label'     => "Quantidade",
             'type'      => 'text',
             'name'      => 'quantidade',
-        ]);        
+        ]);       
+        CRUD::field([   
+            'name'        => 'user_id',
+            'label'       => "Usuario",
+            'type'        => 'hidden',
+            'value' => backpack_auth()->user()->id,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]); 
     }
     
     public function store()
     {
-        $request = $this->crud->validateRequest();
+        DB::beginTransaction();// Inicia a transação do banco de dados
+        try {
+            $request = $this->crud->validateRequest();
 
-        $request['estoque_id'] = $this->storeEstoque($request);
-        $entry = $this->crud->create($request->except(['_token', '_method']));
+            $request['estoque_id'] = $this->storeEstoque($request);
+            $entry = $this->crud->create($request->except(['_token', '_method']));
 
-        $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
-        return $rota;
-    }
-    
-    public function redirecionamentoRotas($saveAction,$entry){
-        if ($saveAction === 'save_and_back') {
-            return redirect("/admin/entrada");
-        } elseif ($saveAction === 'save_and_edit') {
-            return redirect("/admin/entrada/{$entry->id}/edit");
-        } elseif ($saveAction === 'save_and_preview') {
-            return redirect("/admin/entrada/{$entry->id}/show");
-        }elseif ($saveAction === 'save_and_new') {
-            return redirect("/admin/entrada/create");
+            DB::commit();// Se tudo correu bem, commit na transação
+            // Use o método causedBy para definir o "Causer" como o usuário autenticado.
+            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
+            return $rota;
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
         }
     }
-
+    
     public function storeEstoque($request)
     {
         $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
@@ -101,8 +105,19 @@ class EntradaCrudController extends CrudController
 
         $estoque->validades = $estoque->encodeValidadesJSON($validades);
         $estoque->save();
-        
         return $estoque->id;
+    }
+
+    public function redirecionamentoRotas($saveAction,$entry){
+        if ($saveAction === 'save_and_back') {
+            return redirect("/admin/entrada");
+        } elseif ($saveAction === 'save_and_edit') {
+            return redirect("/admin/entrada/{$entry->id}/edit");
+        } elseif ($saveAction === 'save_and_preview') {
+            return redirect("/admin/entrada/{$entry->id}/show");
+        }elseif ($saveAction === 'save_and_new') {
+            return redirect("/admin/entrada/create");
+        }
     }
 
     protected function setupUpdateOperation()
@@ -131,25 +146,32 @@ class EntradaCrudController extends CrudController
     }
     public function update()
     {
-        $request = $this->crud->validateRequest();
-        $entrada = Entrada::find($request->id);
+        DB::beginTransaction();// Inicia a transação do banco de dados
+        try {
+            $request = $this->crud->validateRequest();
+            $entrada = Entrada::find($request->id);
 
-        $estoque = $this->updateEstoque($entrada, $request);
+            $estoque = $this->updateEstoque($entrada, $request);
 
-        Entrada::where('id', $request->id)->update(
-            ['quantidade' => $request->quantidade, 
-             'validade' => $request->validade, 
-             'estoque_id' => $estoque]);
+            $entrada->update(
+                ['quantidade' => $request->quantidade, 
+                'validade' => $request->validade, 
+                'estoque_id' => $estoque]);
 
-        $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
-        return $rota;
+            DB::commit();// Se tudo correu bem, commit na transação
+            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
+            return $rota;
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
+        }
         
     }
     public function updateEstoque($entrada, $request)
     {
         $estoque = Estoque::find($entrada->estoque_id);
 
-        $quantidadeNova = $estoque->atualizarQuantidade($request->quantidade, $entrada->quantidade, null);
+        $quantidadeNova = $estoque->atualizarQuantidadeEntrada($request->quantidade, $entrada->quantidade);
 
         $validades = $estoque->decodeValidadesJSON($estoque->validades);
 
@@ -165,14 +187,26 @@ class EntradaCrudController extends CrudController
             $validades[] = $estoque->criaArrayValidades($request->validade);
         }
         
-        Estoque::where('id', $estoque->id)->update([
-        'qtdTotal' => $quantidadeNova['qtdNova'],'validades' => json_encode($validades),'produto_id' => $request->produto_id]);
+        $estoque->update([
+        'qtdTotal' => $quantidadeNova,'validades' => json_encode($validades),'produto_id' => $request->produto_id]);
         
         return $estoque->id;
     }
     protected function setupShowOperation()
     {
         $this->setupCommonColumns();
+        CRUD::addColumn([
+            'name' => 'user_id',
+            'label' => 'Criado por',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                $user = Entrada::with('users')->findOrFail($entry->id);
+                if ($user) {
+                    return $user->users->name; 
+                }
+                return 'Usuário não encontrada';
+            },
+        ]);
         CRUD::addColumn([
             'name' => 'created_at',
             'label' => 'Criado em',
