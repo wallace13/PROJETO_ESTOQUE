@@ -5,6 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\ActivityLogger;
 
 class Saida extends Model
 {
@@ -16,6 +17,7 @@ class Saida extends Model
     | GLOBAL VARIABLES
     |--------------------------------------------------------------------------
     */
+    protected static $logName = 'saida';
 
     protected $table = 'saidas';
     // protected $primaryKey = 'id';
@@ -30,6 +32,34 @@ class Saida extends Model
     |--------------------------------------------------------------------------
     */
 
+    protected static function boot()
+    {
+        parent::boot();
+        // Exemplo de registro de atividade no método 'created'
+        static::created(function ($saida) {
+            $causador = backpack_auth()->user();
+            $eventName = 'created';
+            $descricao = "Nova saida criado por {$causador->name}";
+            ActivityLogger::logActivity($saida, $eventName, $causador, $descricao,static::$logName,$saida->attributes);
+        });
+
+        // Exemplo de registro de atividade no método 'updated'
+        static::updated(function ($saida) {
+            $causador = backpack_auth()->user();
+            $eventName = 'updated';
+            $descricao = "Saida atualizado por {$causador->name}";
+            ActivityLogger::logActivity($saida, $eventName, $causador, $descricao,static::$logName,$saida->attributes);
+        });
+
+        // Exemplo de registro de atividade no método 'deleted'
+        static::deleted(function ($saida) {
+            $causador = backpack_auth()->user();
+            $eventName = 'deleted';
+            $descricao = "Saida excluído por {$causador->name}";
+            ActivityLogger::logActivity($saida, $eventName, $causador, $descricao,static::$logName,$saida->attributes);
+        });
+
+    }
     /*
     |--------------------------------------------------------------------------
     | RELATIONS

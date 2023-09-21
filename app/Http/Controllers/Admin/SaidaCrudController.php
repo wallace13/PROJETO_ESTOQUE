@@ -85,13 +85,13 @@ class SaidaCrudController extends CrudController
                 if ($qtdValidadesEntrada <= 1) {
                     $validades = $estoque->removeValidade($indiceItem, $validades);
                 }
-                Estoque::where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
+                $estoque->update(['validades' => json_encode($validades)]);
                 $qtdSaidas = $entrada->quantidade;
             }else{
                 $qtdSaidas = $entrada->qtdSaidas + intval($request->input('quantidade'));
             }
-            Entrada::where('id', $idEntrada)->update(['qtdSaidas' => $qtdSaidas]);
-            Estoque::where('id', $entrada->estoque_id)->update(['qtdTotal' => $totalEstoque]);
+            $entrada->update(['qtdSaidas' => $qtdSaidas]);
+            $estoque->update(['qtdTotal' => $totalEstoque]);
             $request['estoque_id'] = $estoque->id;
             $request['entrada_id'] = $entrada->id;
 
@@ -174,9 +174,9 @@ class SaidaCrudController extends CrudController
                 $qtdSaidas = $entrada->qtdSaidas+(intval($request->quantidade) - $saida->quantidade);
             }
            
-            Saida::where('id', $request->id)->update(['quantidade' => intval($request->quantidade)]);
-            Entrada::where('id', $entrada->id)->update(['qtdSaidas' => $qtdSaidas]);
-            Estoque::where('id', $estoque->id)->update(['qtdTotal' => $quantidadeNova['qtdNova'], 'validades' => json_encode($validades)]);
+            $saida->update(['quantidade' => intval($request->quantidade)]);
+            $entrada->update(['qtdSaidas' => $qtdSaidas]);
+            $estoque->update(['qtdTotal' => $quantidadeNova['qtdNova'], 'validades' => json_encode($validades)]);
 
             DB::commit();// Se tudo correu bem, commit na transação
             $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);

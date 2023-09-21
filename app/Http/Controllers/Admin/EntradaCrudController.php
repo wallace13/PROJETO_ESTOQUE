@@ -153,7 +153,7 @@ class EntradaCrudController extends CrudController
 
             $estoque = $this->updateEstoque($entrada, $request);
 
-            Entrada::where('id', $request->id)->update(
+            $entrada->update(
                 ['quantidade' => $request->quantidade, 
                 'validade' => $request->validade, 
                 'estoque_id' => $estoque]);
@@ -187,7 +187,7 @@ class EntradaCrudController extends CrudController
             $validades[] = $estoque->criaArrayValidades($request->validade);
         }
         
-        Estoque::where('id', $estoque->id)->update([
+        $estoque->update([
         'qtdTotal' => $quantidadeNova,'validades' => json_encode($validades),'produto_id' => $request->produto_id]);
         
         return $estoque->id;
