@@ -100,7 +100,7 @@ class ProdutoCrudController extends CrudController
             'label' => 'UF',
             'type' => 'text', 
             'value' => function($entry) {
-                $uf = \App\Models\Uf::find($entry->uf_id);
+                $uf = Uf::find($entry->uf_id);
                 if ($uf) {
                     return $uf->uf; 
                 }

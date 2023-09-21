@@ -16,7 +16,7 @@ class SaidaCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
+    //use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
     public function setup()
@@ -29,6 +29,7 @@ class SaidaCrudController extends CrudController
     protected function setupListOperation()
     {
         $this->setupCommonColumns();
+        $this->crud->addButtonFromView('line', 'cancelarSaida', 'cancelarSaida', 'end');
     }
 
     protected function setupCreateOperation()
@@ -259,6 +260,33 @@ class SaidaCrudController extends CrudController
             'visibleInModal' => true,
         ]);
     }
+    public function cancelarSaida($id)
+    {
+        DB::beginTransaction();
+        try {
+            $saida = Saida::find($id);
+            $entrada = Entrada::find($saida->entrada_id);
+            $estoque = Estoque::find($saida->estoque_id);
+            
+            $NovaQuantidade = $entrada->qtdSaidas - $saida->quantidade;
+            $NovaQuantidadeEstoque = $estoque->qtdTotal + $saida->quantidade;
 
+            $validades = $estoque->decodeValidadesJSON($estoque->validades);
+            $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
+            if ($indiceItem === false) {
+                $validades[] = $estoque->criaArrayValidades($entrada->validade);
+                dd("não");
+            }
+            $entrada->update(['qtdSaidas' => $NovaQuantidade]);
+            $estoque->update(['qtdTotal' => $NovaQuantidadeEstoque]);
+            $saida->delete();
+            
+            DB::commit();// Se tudo correu bem, commit na transação
+            return redirect("/admin/saida")->with('success', 'Saida cancelada com sucesso');
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
+        }
+    }
 }
 

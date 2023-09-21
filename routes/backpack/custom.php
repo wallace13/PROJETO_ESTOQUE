@@ -23,4 +23,8 @@ Route::group([
     Route::crud('saida', 'SaidaCrudController');
     Route::get('dashboard', 'DashboardController@Setup')->name('dashboard');
     Route::crud('activitylog', 'ActivitylogCrudController');
+    
+    Route::get('saida/{id}/cancelar', 'SaidaCrudController@cancelarSaida');
+
+
 }); 
