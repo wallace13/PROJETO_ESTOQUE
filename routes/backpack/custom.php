@@ -21,4 +21,5 @@ Route::group([
     Route::crud('uf', 'UfCrudController');
     Route::crud('entrada', 'EntradaCrudController');
     Route::crud('saida', 'SaidaCrudController');
+    Route::get('dashboard', 'DashboardController@Setup')->name('dashboard');
 }); 
