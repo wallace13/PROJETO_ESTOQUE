@@ -27,5 +27,7 @@ Route::group([
     Route::get('saida/{id}/cancelar', 'SaidaCrudController@cancelarSaida');
     Route::get('entrada/{id}/cancelar', 'EntradaCrudController@cancelarEntrada');
 
+    Route::get('produto/{id}/remover', 'ProdutoCrudController@remover');
+
 
 }); 

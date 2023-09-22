@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Produto;
 use App\Models\Uf;
+use App\Models\Estoque;
 use App\Http\Requests\ProdutoRequest;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -13,7 +14,7 @@ class ProdutoCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
+    //use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
     public function setup()
@@ -26,6 +27,7 @@ class ProdutoCrudController extends CrudController
     protected function setupListOperation()
     {
         $this->setupCommonColumns();
+        $this->crud->addButtonFromView('line', 'remover', 'remover', 'end');
     }
 
     protected function setupCreateOperation()
@@ -107,5 +109,22 @@ class ProdutoCrudController extends CrudController
                 return 'Uf não encontrado';
             },
         ]);
+    }
+    public function remover($id){
+        $estoque = Estoque::where("produto_id", $id)->first();
+       
+        if ($estoque) {
+            \Alert::error("Não é possivel excluir, pois produto já foi para o estoque")->flash();
+            return redirect("/admin/produto");
+        } else {
+            try {
+                $produto = Produto::find($id);
+                $produto->delete();
+                \Alert::success("Produto excluído com sucesso")->flash();
+                return redirect("/admin/produto");
+            } catch (\Exception $e) {
+                throw $e;
+            }
+        }
     }
 }
