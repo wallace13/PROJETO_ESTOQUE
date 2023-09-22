@@ -16,7 +16,7 @@ class EntradaCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
+    //use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
     public function setup()
@@ -29,6 +29,7 @@ class EntradaCrudController extends CrudController
     protected function setupListOperation()
     {
         $this->setupCommonColumns();
+        $this->crud->addButtonFromView('line', 'cancelarEntrada', 'cancelarEntrada', 'end');
     }
 
     protected function setupCreateOperation()
@@ -280,5 +281,38 @@ class EntradaCrudController extends CrudController
             'orderable'      => true,
             'visibleInModal' => true,
         ]);
+    }
+
+    public function cancelarEntrada($id){
+        DB::beginTransaction();
+        try {
+            $entrada = Entrada::find($id);
+            $estoque = Estoque::find($entrada->estoque_id);
+            //dd($entrada, $estoque);
+            if($entrada->qtdSaidas == 0){
+                $validadesdoEstoque = $estoque->decodeValidadesJSON($estoque->validades);
+                $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validadesdoEstoque);
+                $qtdItem = $estoque->countValidadeEntrada($entrada);
+
+                if ($indiceItem !== false && $qtdItem <= 1) {
+                    $validades = $estoque->removeValidade($indiceItem, $validadesdoEstoque);
+                    $validadesAtualizadas = json_encode($validades);
+                    
+                    Estoque::where('id', $entrada->estoque_id)->update(['validades' => $validadesAtualizadas]);
+                }
+                $quantidadeNova = $estoque->qtdTotal - $entrada->quantidade;
+                $estoque->update(['qtdTotal' => $quantidadeNova]);
+                $entrada->delete();
+                DB::commit();// Se tudo correu bem, commit na transação
+                \Alert::success("Entrada cancelada com sucesso")->flash();
+                return redirect("/admin/entrada");
+            }else{
+                \Alert::error("Não é possivel cancelar, pois entrada já possui saídas")->flash();
+                return redirect("/admin/entrada");
+            }
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
+        }
     }
 }

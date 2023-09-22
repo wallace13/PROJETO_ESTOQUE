@@ -25,6 +25,7 @@ Route::group([
     Route::crud('activitylog', 'ActivitylogCrudController');
     
     Route::get('saida/{id}/cancelar', 'SaidaCrudController@cancelarSaida');
+    Route::get('entrada/{id}/cancelar', 'EntradaCrudController@cancelarEntrada');
 
 
 }); 

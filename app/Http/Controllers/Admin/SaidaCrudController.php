@@ -275,14 +275,14 @@ class SaidaCrudController extends CrudController
             $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
             if ($indiceItem === false) {
                 $validades[] = $estoque->criaArrayValidades($entrada->validade);
-                dd("não");
             }
             $entrada->update(['qtdSaidas' => $NovaQuantidade]);
             $estoque->update(['qtdTotal' => $NovaQuantidadeEstoque]);
             $saida->delete();
             
             DB::commit();// Se tudo correu bem, commit na transação
-            return redirect("/admin/saida")->with('success', 'Saida cancelada com sucesso');
+            \Alert::success("Saida cancelada com sucesso")->flash();
+            return redirect("/admin/saida");
         } catch (\Exception $e) {
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
