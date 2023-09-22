@@ -1,5 +1,5 @@
 @if ($crud->hasAccess('update'))
-    <a href="#" data-route="{{ url($crud->route.'/'.$entry->getKey()).'/cancelar' }}" onclick="deleteEntry(this)" class="btn btn-sm btn-link"><i class="la la-ban"></i> cancelar saida</a>
+    <a href="#" data-route="{{ url($crud->route.'/'.$entry->getKey()).'/cancelar' }}" onclick="deleteEntry(this)" class="btn btn-sm btn-link"><i class="la la-ban"></i> Cancelar saída</a>
 @endif
 
 <script>
