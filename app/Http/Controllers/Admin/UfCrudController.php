@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Uf;
+use App\Models\Produto;
 use App\Http\Requests\UfRequest;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -30,6 +31,7 @@ class UfCrudController extends CrudController
     protected function setupListOperation()
     {
         $this->setupCommonColumns();
+        $this->crud->addButtonFromView('line', 'remover', 'remover', 'end');
     }
 
     protected function setupCreateOperation()
@@ -96,5 +98,21 @@ class UfCrudController extends CrudController
             'label' => 'Sigla',
             'type' => 'text', 
         ]);
+    }
+    public function remover($id){
+        $produto = Produto::where("uf_id", $id)->first();
+        if ($produto) {
+            \Alert::error("Não é possivel excluir, pois uf pertence à um produto")->flash();
+            return redirect("/admin/uf");
+        } else {
+            try {
+                $uf = Uf::find($id);
+                $uf->delete();
+                \Alert::success("Uf excluído com sucesso")->flash();
+                return redirect("/admin/uf");
+            } catch (\Exception $e) {
+                throw $e;
+            }
+        }
     }
 }

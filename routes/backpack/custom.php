@@ -28,6 +28,8 @@ Route::group([
     Route::get('entrada/{id}/cancelar', 'EntradaCrudController@cancelarEntrada');
 
     Route::get('produto/{id}/remover', 'ProdutoCrudController@remover');
+    Route::get('uf/{id}/remover', 'UfCrudController@remover');
+
 
 
 }); 
