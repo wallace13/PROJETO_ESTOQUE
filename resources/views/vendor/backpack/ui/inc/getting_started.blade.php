@@ -53,7 +53,25 @@
   <div class="col-6">
     <div class="card">
       <div class="card-body text-center">
-        <h5>Gráfico</h5>
+        <h5>Validades à vencer</h5>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Produto</th>
+              <th scope="col">Validade</th>
+              <th scope="col">Quantidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($validades as $validade)
+            <tr @if(Carbon\Carbon::now()->gt($validade->validade)) class="text-danger" @endif>
+                <td>{{ $validade->estoque->produto->nome }} - {{ $validade->estoque->produto->ufs->uf }}</td>
+                <td>{{ \Carbon\Carbon::parse($validade->validade)->format('d/m/Y') }}</td>
+                <td>{{ $validade->quantidade }}</td>
+            </tr>
+            @endforeach
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
