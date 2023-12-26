@@ -75,6 +75,10 @@ class Produto extends Model
         return $this->belongsTo(Uf::class,'uf_id','id');
     }
 
+    public function categorias(){
+        return $this->belongsTo(Categoria::class,'categoria_id','id');
+    }
+
     public function users(){
         return $this->belongsTo(User::class,'user_id','id');
     }

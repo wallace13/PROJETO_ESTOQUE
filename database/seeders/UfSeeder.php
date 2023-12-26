@@ -27,5 +27,6 @@ class UfSeeder extends Seeder
         ];
     
         DB::table('ufs')->insert($ufs);
+
     }
 }

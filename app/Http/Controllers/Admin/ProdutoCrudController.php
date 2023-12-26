@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Produto;
 use App\Models\Uf;
+use App\Models\Categoria;
 use App\Models\Estoque;
 use App\Http\Requests\ProdutoRequest;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
@@ -35,12 +36,22 @@ class ProdutoCrudController extends CrudController
         CRUD::setValidation(ProdutoRequest::class);
         $ufs = Uf::All()->pluck('uf', 'id')->toArray();
         asort($ufs);
+        $categorias = Categoria::All()->pluck('descricao', 'id')->toArray();
+        asort($categorias);
         CRUD::field('nome')->type('text')->label('Nome');
         CRUD::field([   // select_from_array
             'name'        => 'uf_id',
             'label'       => "Unidade de Fornecimento (UF)",
             'type'        => 'select_from_array',
             'options'     => [null => 'Escolha um produto'] +$ufs,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]);
+        CRUD::field([   // select_from_array
+            'name'        => 'categoria_id',
+            'label'       => "Categorias",
+            'type'        => 'select_from_array',
+            'options'     => [null => 'Escolha uma categoria'] +$categorias,
             'allows_null' => false,
             'default'     => 'one',
         ]);

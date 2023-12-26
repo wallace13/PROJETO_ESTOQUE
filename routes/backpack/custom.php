@@ -29,4 +29,5 @@ Route::group([
 
     Route::get('produto/{id}/remover', 'ProdutoCrudController@remover');
     Route::get('uf/{id}/remover', 'UfCrudController@remover');
+    Route::crud('categoria', 'CategoriaCrudController');
 }); 
