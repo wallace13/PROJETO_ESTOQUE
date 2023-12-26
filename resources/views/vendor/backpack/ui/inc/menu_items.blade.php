@@ -7,3 +7,4 @@
 <x-backpack::menu-item title="Registro de Saidas" icon="la la-cart-arrow-down" :link="backpack_url('saida')" />
 <x-backpack::menu-item title="Atividades de Log" icon="la la-question" :link="backpack_url('activitylog')" />
 <x-backpack::menu-item title="Categorias" icon="la la-question" :link="backpack_url('categoria')" />
+<x-backpack::menu-item title="Fornecedors" icon="la la-question" :link="backpack_url('fornecedor')" />

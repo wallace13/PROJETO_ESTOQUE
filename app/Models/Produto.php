@@ -79,6 +79,10 @@ class Produto extends Model
         return $this->belongsTo(Categoria::class,'categoria_id','id');
     }
 
+    public function fornecedores(){
+        return $this->belongsTo(Fornecedor::class,'fornecedor_id','id');
+    }
+
     public function users(){
         return $this->belongsTo(User::class,'user_id','id');
     }

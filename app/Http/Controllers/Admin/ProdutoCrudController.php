@@ -120,6 +120,18 @@ class ProdutoCrudController extends CrudController
                 return 'Uf não encontrado';
             },
         ]);
+        CRUD::addColumn([
+            'name' => 'categoria_id',
+            'label' => 'Categoria',
+            'type' => 'text', 
+            'value' => function($entry) {
+                $categoria = Categoria::find($entry->categoria_id);
+                if ($categoria) {
+                    return $categoria->descricao; 
+                }
+                return 'Uf não encontrado';
+            },
+        ]);
     }
     public function remover($id){
         $estoque = Estoque::where("produto_id", $id)->first();
