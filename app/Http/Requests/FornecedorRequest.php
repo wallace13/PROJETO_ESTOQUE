@@ -25,7 +25,8 @@ class FornecedorRequest extends FormRequest
     public function rules()
     {
         return [
-            // 'name' => 'required|min:5|max:255'
+            'razao_social' => 'required',
+            'cnpj' =>  'required',
         ];
     }
 
@@ -37,7 +38,8 @@ class FornecedorRequest extends FormRequest
     public function attributes()
     {
         return [
-            //
+            'razao_social' => 'Razão Social',
+            'cnpj' =>  'CNPJ',
         ];
     }
 
@@ -49,7 +51,7 @@ class FornecedorRequest extends FormRequest
     public function messages()
     {
         return [
-            //
+            'required' => "O campo :attribute é obrigatorio.",
         ];
     }
 }
