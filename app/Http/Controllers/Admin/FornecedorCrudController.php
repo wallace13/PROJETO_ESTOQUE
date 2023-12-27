@@ -202,7 +202,7 @@ class FornecedorCrudController extends CrudController
         CRUD::addField([   
             'name'        => 'email',
             'label'       => 'E-mail',
-            'type'        => 'text',
+            'type'        => 'email',
             'attributes'  => [
                 'placeholder' => 'Digite o e-mail',
             ],

@@ -6,7 +6,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "backpack/crud": "^6.1",
+        "backpack/crud": "^6.4",
+        "backpack/permissionmanager": "^7.1",
         "backpack/theme-coreuiv4": "^1.0",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^10.10",

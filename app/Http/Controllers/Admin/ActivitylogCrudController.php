@@ -28,7 +28,7 @@ class ActivitylogCrudController extends CrudController
     {
         CRUD::setModel(\App\Models\Activitylog::class);
         CRUD::setRoute(config('backpack.base.route_prefix') . '/activitylog');
-        CRUD::setEntityNameStrings('activitylog', 'activitylogs');
+        CRUD::setEntityNameStrings('activitylog', 'Atividades de Log');
     }
 
     /**

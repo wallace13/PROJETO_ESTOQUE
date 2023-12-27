@@ -5,6 +5,7 @@
 <x-backpack::menu-item title="Unidade de Fornecimento" icon="la la-balance-scale-left" :link="backpack_url('uf')" />
 <x-backpack::menu-item title="Registro de Entradas" icon="la la-cart-plus" :link="backpack_url('entrada')" />
 <x-backpack::menu-item title="Registro de Saidas" icon="la la-cart-arrow-down" :link="backpack_url('saida')" />
-<x-backpack::menu-item title="Atividades de Log" icon="la la-question" :link="backpack_url('activitylog')" />
-<x-backpack::menu-item title="Categorias" icon="la la-question" :link="backpack_url('categoria')" />
-<x-backpack::menu-item title="Fornecedors" icon="la la-question" :link="backpack_url('fornecedor')" />
+<x-backpack::menu-item title="Categorias" icon="la la-th-list" :link="backpack_url('categoria')" />
+<x-backpack::menu-item title="Fornecedores" icon="la la-industry" :link="backpack_url('fornecedor')" />
+<x-backpack::menu-item title="Atividades de Log" icon="la la-file-alt" :link="backpack_url('activitylog')" />
+
