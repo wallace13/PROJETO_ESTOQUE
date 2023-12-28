@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 
 class FornecedorRequest extends FormRequest
 {
@@ -24,6 +25,9 @@ class FornecedorRequest extends FormRequest
      */
     public function rules()
     {
+        if ($this->cnpj != null) {
+            $this->merge(['cnpj' => Str::of($this->cnpj)->replace(['.', '/','-'], ''),]);
+        }
         return [
             'razao_social' => 'required',
             'cnpj' =>  'required',
