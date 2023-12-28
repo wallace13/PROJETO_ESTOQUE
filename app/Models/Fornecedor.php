@@ -31,6 +31,11 @@ class Fornecedor extends Model
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
+    public function getFormattedNameAttribute()
+    {
+        return $this->cnpj . ' - ' . $this->razao_social;
+    }
+
     protected static function boot()
     {
         parent::boot();

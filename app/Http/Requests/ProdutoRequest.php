@@ -28,6 +28,7 @@ class ProdutoRequest extends FormRequest
             'nome' => 'required',
             'uf_id' =>  'required',
             'categoria_id' =>  'required',
+            'fornecedor_id' =>  'required',
         ];
     }
 
@@ -42,6 +43,7 @@ class ProdutoRequest extends FormRequest
             'nome' => 'Nome',
             'uf_id' =>  'Unidade de Fornecimento',
             'categoria_id' =>  'Categoria',
+            'fornecedor_id' =>  'Fornecedor',
         ];
     }
 

@@ -7,6 +7,7 @@ use App\Models\Uf;
 use App\Models\Categoria;
 use App\Models\Estoque;
 use App\Http\Requests\ProdutoRequest;
+use App\Models\Fornecedor;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
@@ -38,6 +39,13 @@ class ProdutoCrudController extends CrudController
         asort($ufs);
         $categorias = Categoria::All()->pluck('descricao', 'id')->toArray();
         asort($categorias);
+
+        $fornecedores = Fornecedor::orderBy('id')->get();
+        $dadosFornecedor = $fornecedores->map(function ($fornecedor) {
+            return ['id' => $fornecedor->id, 'name' => $fornecedor->formatted_name];
+        })->pluck('name', 'id')->toArray();
+        asort($dadosFornecedor);
+
         CRUD::field('nome')->type('text')->label('Nome');
         CRUD::field([   // select_from_array
             'name'        => 'uf_id',
@@ -49,9 +57,17 @@ class ProdutoCrudController extends CrudController
         ]);
         CRUD::field([   // select_from_array
             'name'        => 'categoria_id',
-            'label'       => "Categorias",
+            'label'       => "Categoria",
             'type'        => 'select_from_array',
             'options'     => [null => 'Escolha uma categoria'] +$categorias,
+            'allows_null' => false,
+            'default'     => 'one',
+        ]);
+        CRUD::field([   // select_from_array
+            'name'        => 'fornecedor_id',
+            'label'       => "Fornecedor",
+            'type'        => 'select_from_array',
+            'options'     => [null => 'Escolha uma fornecedor'] +$dadosFornecedor,
             'allows_null' => false,
             'default'     => 'one',
         ]);
@@ -130,6 +146,18 @@ class ProdutoCrudController extends CrudController
                     return $categoria->descricao; 
                 }
                 return 'Uf não encontrado';
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'fornecedor_id',
+            'label' => 'Fornecido por',
+            'type' => 'text', 
+            'value' => function($entry) {
+                $fornecedor =   Fornecedor::find($entry->fornecedor_id);
+                if ($fornecedor) {
+                    return $fornecedor->razao_social; 
+                }
+                return 'Fornecedor não encontrado';
             },
         ]);
     }
