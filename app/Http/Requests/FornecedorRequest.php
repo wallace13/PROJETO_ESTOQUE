@@ -25,12 +25,30 @@ class FornecedorRequest extends FormRequest
      */
     public function rules()
     {
+        $cnpjRule = 'required|size:14|unique:fornecedores,cnpj';
+    
+        // Adicione uma condição para ignorar a unicidade ao editar o registro atual
+        if ($this->has('id')) {
+            $cnpjRule .= ',' . $this->id;
+        }
+
         if ($this->cnpj != null) {
-            $this->merge(['cnpj' => Str::of($this->cnpj)->replace(['.', '/','-'], ''),]);
+            $this->merge(['cnpj' => Str::of($this->cnpj)->replace(['.', '/','-','_'], ''),]);
         }
         return [
             'razao_social' => 'required',
-            'cnpj' =>  'required',
+            'cnpj' => $cnpjRule,
+            'logradouro' =>  'required',
+            'numero' =>  'required',
+            'complemento' =>  'required',
+            'bairro' =>  'required',
+            'cidade' =>  'required',
+            'estado' =>  'required',
+            'cep' =>  'required',
+            'telefone' =>  'required',
+            'email' =>  'required|email',
+            'responsavel_legal' =>  'required|alpha',
+            'situacao_cadastral' =>  'required',
         ];
     }
 
@@ -44,6 +62,17 @@ class FornecedorRequest extends FormRequest
         return [
             'razao_social' => 'Razão Social',
             'cnpj' =>  'CNPJ',
+            'logradouro' =>  'Logradouro',
+            'numero' =>  'Número',
+            'complemento' =>  'Complemento',
+            'bairro' =>  'Bairro',
+            'cidade' =>  'Cidade',
+            'estado' =>  'Estado',
+            'cep' =>  'CEP',
+            'telefone' =>  'Telefone',
+            'email' =>  'E-mail',
+            'responsavel_legal' =>  'Responsável Legal',
+            'situacao_cadastral' =>  'Situação Cadastral',
         ];
     }
 
@@ -56,6 +85,10 @@ class FornecedorRequest extends FormRequest
     {
         return [
             'required' => "O campo :attribute é obrigatorio.",
+            'email' => "O campo deve ser um :attribute valido.",
+            'alpha' => ":attribute inválido, informe um nome válido",
+            'unique' => 'O :attribute já está cadastrado.',
+            'size' => ':attribute inválido'
         ];
     }
 }
