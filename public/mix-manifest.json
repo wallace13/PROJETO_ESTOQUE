@@ -1,4 +1,7 @@
 {
     "/js/app.js": "/js/app.js",
+    "/js/dashboard.js": "/js/dashboard.js",
+    "/js/graficoColuna.js": "/js/graficoColuna.js",
+    "/js/graficoPizza.js": "/js/graficoPizza.js",
     "/css/app.css": "/css/app.css"
 }

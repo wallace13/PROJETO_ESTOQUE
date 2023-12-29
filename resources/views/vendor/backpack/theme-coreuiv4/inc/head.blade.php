@@ -24,6 +24,5 @@
 <![endif]-->
 
 
-<!-- Scripts 
-<script src="{{ asset('js/app.js') }}" defer></script>-->
+<!-- Scripts -->
 <script type="module" src="{{ asset('js/app.js') }}" defer></script>

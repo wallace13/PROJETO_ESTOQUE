@@ -11,7 +11,7 @@
     <div class="card border-light">
       <div class="card-body text-center bg-success rounded">
         <h5>Total de Entrada no mês</h5>
-        <h2>{{$tentradas}}</h2>
+        <h2 id='entradas'>{{$tentradas}}</h2>
       </div>
     </div>
   </div>
@@ -19,13 +19,13 @@
     <div class="card border-light">
       <div class="card-body text-center bg-warning rounded">
         <h5>Total de Saidas no mês</h5>
-        <h2>{{$tsaidas}}</h2>
+        <h2 id='saidas'>{{$tsaidas}}</h2>
       </div>
     </div>
   </div>
 </div>
 <div class="row">
-  <div class="col-6">
+  <div class="col-4">
     <div class="card">
       <div class="card-body text-center">
         <h5>Últimas Entradas</h5>
@@ -50,7 +50,7 @@
       </div>
     </div>
   </div>
-  <div class="col-6">
+  <div class="col-4">
     <div class="card">
       <div class="card-body text-center">
         <h5>Validades à vencer</h5>
@@ -75,9 +75,7 @@
       </div>
     </div>
   </div>
-</div>
-<div class="row">
-  <div class="col-6">
+  <div class="col-4">
     <div class="card">
       <div class="card-body text-center">
         <h5>Últimas Saidas</h5>
@@ -104,10 +102,25 @@
       </div>
     </div>
   </div>
+</div>
+<div class="row">
   <div class="col-6">
     <div class="card">
       <div class="card-body text-center">
-        <h5>Gráfico</h5>
+        <h5>Gráfico de Entradas e Saidas</h5>
+          <div id="graficoContainer" style="height: 200px; width: 100%;">
+              <canvas id="pizzaEntradaSaida"></canvas>
+          </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h5>Gráfico de Entradas e Saidas</h5>
+          <div id="graficoContainer" style="height: 200px; width: 100%;">
+              <canvas id="colunaEntradaSaida"></canvas>
+          </div>
       </div>
     </div>
   </div>
@@ -120,3 +133,5 @@
   @basset('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js')
   <script>hljs.highlightAll();</script>
 @endpush
+
+<script src="{{ asset('js/dashboard.js') }}"></script>
