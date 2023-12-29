@@ -109,6 +109,21 @@ class EstoqueCrudController extends CrudController
             'visibleInModal' => true,
         ]);
         CRUD::addColumn([
+            'name' => 'categoria',
+            'label' => 'Categoria',
+            'type' => 'text',
+            'value' => function($entry) {
+                $estoque = Estoque::with('produto.categorias')->findOrFail($entry->id);
+                if ($estoque) {
+                    return $estoque->produto->categorias->descricao; 
+                }
+                return 'Categoria não encontrado';
+            },
+            'searchLogic'    => true,
+            'orderable'      => true,
+            'visibleInModal' => true,
+        ]);
+        CRUD::addColumn([
             'name' => 'qtdTotal',
             'label' => 'Quantidade',
             'type' => 'text',
