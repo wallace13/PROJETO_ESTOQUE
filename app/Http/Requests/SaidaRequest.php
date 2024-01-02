@@ -36,8 +36,12 @@ class SaidaRequest extends FormRequest
                 if (intval($quantidade) > $saida[0]->quantidade) {
                     $qtdMax = ($entrada[0]->quantidade  - $entrada[0]->qtdSaidas) + $saida[0]->quantidade;
                 }else {
-                    $subtotal = $saida[0]->quantidade - intval($quantidade);
-                    $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas + $subtotal;
+                    if($entrada[0]->qtdSaidas === $entrada[0]->quantidade){
+                        $qtdMax = $entrada[0]->qtdSaidas;
+                    }else {
+                        $subtotal = $saida[0]->quantidade - intval($quantidade);
+                        $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas + $subtotal;
+                    }
                 }
             }else {
                 $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas;
