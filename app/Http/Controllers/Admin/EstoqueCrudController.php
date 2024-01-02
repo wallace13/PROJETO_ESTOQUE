@@ -132,4 +132,85 @@ class EstoqueCrudController extends CrudController
             'visibleInModal' => true,
         ]);
     }
+    public static function store($request)
+    {
+        $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
+
+        $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
+        
+        $validades = self::updateValidades(null,$estoque,$request);
+        $estoque->validades = $estoque->encodeValidadesJSON($validades);
+        $estoque->save();
+        
+        return $estoque->id;
+    }
+    public static function updateEstoque($entrada, $request)
+    {
+        $estoque = Estoque::find($entrada->estoque_id);
+
+        $quantidadeNova = $estoque->atualizarQuantidadeEntrada($request->quantidade, $entrada->quantidade);
+
+        self::updateValidades($entrada,$estoque,$request);
+        
+        $estoque->update(['qtdTotal' => $quantidadeNova,'produto_id' => $request->produto_id]);
+        return $estoque->id;
+    }
+    public static function updateValidades($entrada, $estoque, $request)
+    {
+        $validades = $estoque->decodeValidadesJSON($estoque->validades);
+        if($validades === null || empty($validades) && $request !== null){
+            $validades[] = $estoque->criaArrayValidades($request->validade);
+            return $validades;
+        }else{
+            if($entrada !== null){
+                $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
+                $validade = $entrada->validade;
+                $qtdValidades = $estoque->countValidadeEntrada($entrada);
+                if ($indiceItem !== false && $qtdValidades <= 1) {
+                    $validades = $estoque->removeValidade($indiceItem, $validades);
+                }
+            }
+            if($request !== null){
+                $indiceItem = $estoque->buscaValidadeNoArray($request->validade, $validades);
+                $validade = $request->validade;
+            }
+
+            if ($indiceItem === false) {
+                $validades[] = $estoque->criaArrayValidades($validade);
+            }
+
+            if ($request !== null && $entrada === null) {
+                return $validades;
+            }            
+        }
+        $estoque->where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
+    }
+    public static function atualizarQuantidadesSaida($request, $entrada, $estoque)
+    {
+        $totalEntrada = $entrada->quantidade - $entrada->qtdSaidas - intval($request->input('quantidade'));
+        $totalEstoque = $estoque->qtdTotal - intval($request->input('quantidade'));
+
+        if ($totalEntrada == 0) {
+            self::updateValidades($entrada,$estoque,null);
+            $qtdSaidas = $entrada->quantidade;
+        } else {
+            $qtdSaidas = $entrada->qtdSaidas + intval($request->input('quantidade'));
+        }
+
+        $entrada->update(['qtdSaidas' => $qtdSaidas]);
+        $estoque->update(['qtdTotal' => $totalEstoque]);
+    }
+
+    public static function removeQuantidade($estoque, $entrada, $saida){
+        if ($entrada != null) {
+            $quantidadeNova = $estoque->qtdTotal - $entrada->quantidade;
+        }
+        if ($saida != null) {
+            $quantidadeNova = $estoque->qtdTotal + $saida->quantidade;
+        }
+
+        $estoque->update(['qtdTotal' => $quantidadeNova]);
+    }
+            
+
 }

@@ -6,6 +6,8 @@ use App\Models\Estoque;
 use App\Models\Entrada;
 use App\Models\Produto;
 use App\Models\Saida;
+use App\Http\Controllers\Admin\EstoqueCrudController;
+use App\Http\Controllers\Admin\EntradaCrudController;
 use App\Http\Requests\SaidaRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
@@ -71,28 +73,12 @@ class SaidaCrudController extends CrudController
         DB::beginTransaction();// Inicia a transação do banco de dados
         try {
             $request = $this->crud->validateRequest();
-
             $idEntrada = $request->estoque_id;
             $entrada = Entrada::where('id', $idEntrada)->first();
             $estoque = Estoque::where('id', $entrada->estoque_id)->first();
             
-            $totalEntrada = $entrada->quantidade - $entrada->qtdSaidas - intval($request->input('quantidade'));
-            $totalEstoque = $estoque->qtdTotal - intval($request->input('quantidade'));
+            EstoqueCrudController::atualizarQuantidadesSaida($request, $entrada, $estoque);
 
-            if($totalEntrada == 0){
-                $validades = $estoque->decodeValidadesJSON($estoque->validades);
-                $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-                $qtdValidadesEntrada = $estoque->countValidadeEntrada($entrada);
-                if ($qtdValidadesEntrada <= 1) {
-                    $validades = $estoque->removeValidade($indiceItem, $validades);
-                }
-                $estoque->update(['validades' => json_encode($validades)]);
-                $qtdSaidas = $entrada->quantidade;
-            }else{
-                $qtdSaidas = $entrada->qtdSaidas + intval($request->input('quantidade'));
-            }
-            $entrada->update(['qtdSaidas' => $qtdSaidas]);
-            $estoque->update(['qtdTotal' => $totalEstoque]);
             $request['estoque_id'] = $estoque->id;
             $request['entrada_id'] = $entrada->id;
 
@@ -267,19 +253,13 @@ class SaidaCrudController extends CrudController
             $saida = Saida::find($id);
             $entrada = Entrada::find($saida->entrada_id);
             $estoque = Estoque::find($saida->estoque_id);
-            
-            $NovaQuantidade = $entrada->qtdSaidas - $saida->quantidade;
-            $NovaQuantidadeEstoque = $estoque->qtdTotal + $saida->quantidade;
+        
+            EstoqueCrudController::updateValidades($entrada, $estoque,null);
+            //Estoque/ Entrada/ Saida
+            EstoqueCrudController::removeQuantidade($estoque, null, $saida);
+            EntradaCrudController::updateQuantidade($entrada,$saida);
 
-            $validades = $estoque->decodeValidadesJSON($estoque->validades);
-            $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-            if ($indiceItem === false) {
-                $validades[] = $estoque->criaArrayValidades($entrada->validade);
-            }
-            $entrada->update(['qtdSaidas' => $NovaQuantidade]);
-            $estoque->update(['qtdTotal' => $NovaQuantidadeEstoque]);
             $saida->delete();
-            
             DB::commit();// Se tudo correu bem, commit na transação
             \Alert::success("Saida cancelada com sucesso")->flash();
             return redirect("/admin/saida");

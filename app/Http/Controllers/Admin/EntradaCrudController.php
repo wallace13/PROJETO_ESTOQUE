@@ -6,7 +6,9 @@ use App\Models\Estoque;
 use App\Models\Entrada;
 use App\Models\Produto;
 use App\Models\Uf;
+use App\Http\Controllers\Admin\EstoqueCrudController;
 use App\Http\Requests\EntradaRequest;
+use App\Http\Requests\EstoqueRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -74,7 +76,8 @@ class EntradaCrudController extends CrudController
         try {
             $request = $this->crud->validateRequest();
 
-            $request['estoque_id'] = $this->storeEstoque($request);
+            $request['estoque_id'] = EstoqueCrudController::store($request);
+
             $entry = $this->crud->create($request->except(['_token', '_method']));
 
             DB::commit();// Se tudo correu bem, commit na transação
@@ -84,29 +87,6 @@ class EntradaCrudController extends CrudController
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
         }
-    }
-    
-    public function storeEstoque($request)
-    {
-        $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
-
-        $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
-    
-        $validades = $estoque->decodeValidadesJSON($estoque->validades);
-        if($validades === null){
-            $validades[] = $estoque->criaArrayValidades($request->validade);
-        }else{
-            $indiceItem = $estoque->buscaValidadeNoArray($request->validade, $validades);
-        
-            if ($indiceItem === false) {
-                $validades[] = $estoque->criaArrayValidades($request->validade);
-            }
-        }
-
-        $estoque->validades = $estoque->encodeValidadesJSON($validades);
-        $estoque->save();
-        
-        return $estoque->id;
     }
 
     public function redirecionamentoRotas($saveAction,$entry){
@@ -152,7 +132,7 @@ class EntradaCrudController extends CrudController
             $request = $this->crud->validateRequest();
             $entrada = Entrada::find($request->id);
 
-            $estoque = $this->updateEstoque($entrada, $request);
+            $estoque = EstoqueCrudController::updateEstoque($entrada, $request);
 
             $entrada->update(
                 ['quantidade' => $request->quantidade, 
@@ -168,31 +148,7 @@ class EntradaCrudController extends CrudController
         }
         
     }
-    public function updateEstoque($entrada, $request)
-    {
-        $estoque = Estoque::find($entrada->estoque_id);
-
-        $quantidadeNova = $estoque->atualizarQuantidadeEntrada($request->quantidade, $entrada->quantidade);
-
-        $validades = $estoque->decodeValidadesJSON($estoque->validades);
-
-        $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-        $qtdItem = $estoque->countValidadeEntrada($entrada);
-
-        if ($indiceItem !== false && $qtdItem <= 1) {
-            $validades = $estoque->removeValidade($indiceItem, $validades);
-        }
-        $indice = $estoque->buscaValidadeNoArray($request->validade, $validades);
-
-        if ($indice === false) {
-            $validades[] = $estoque->criaArrayValidades($request->validade);
-        }
-        
-        $estoque->update([
-        'qtdTotal' => $quantidadeNova,'validades' => json_encode($validades),'produto_id' => $request->produto_id]);
-        
-        return $estoque->id;
-    }
+    
     protected function setupShowOperation()
     {
         $this->setupCommonColumns();
@@ -282,26 +238,20 @@ class EntradaCrudController extends CrudController
             'visibleInModal' => true,
         ]);
     }
+    public static function updateQuantidade($entrada, $saida){
+        $NovaQuantidade = $entrada->qtdSaidas - $saida->quantidade;
+        $entrada->update(['qtdSaidas' => $NovaQuantidade]);
+    }
 
     public function cancelarEntrada($id){
         DB::beginTransaction();
         try {
             $entrada = Entrada::find($id);
             $estoque = Estoque::find($entrada->estoque_id);
-            //dd($entrada, $estoque);
             if($entrada->qtdSaidas == 0){
-                $validadesdoEstoque = $estoque->decodeValidadesJSON($estoque->validades);
-                $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validadesdoEstoque);
-                $qtdItem = $estoque->countValidadeEntrada($entrada);
-
-                if ($indiceItem !== false && $qtdItem <= 1) {
-                    $validades = $estoque->removeValidade($indiceItem, $validadesdoEstoque);
-                    $validadesAtualizadas = json_encode($validades);
-                    
-                    Estoque::where('id', $entrada->estoque_id)->update(['validades' => $validadesAtualizadas]);
-                }
-                $quantidadeNova = $estoque->qtdTotal - $entrada->quantidade;
-                $estoque->update(['qtdTotal' => $quantidadeNova]);
+                EstoqueCrudController::updateValidades($entrada, $estoque,null);
+                //Estoque/ Entrada/ Saida
+                EstoqueCrudController::removeQuantidade($estoque, $entrada, null);
                 $entrada->delete();
                 DB::commit();// Se tudo correu bem, commit na transação
                 \Alert::success("Entrada cancelada com sucesso")->flash();
