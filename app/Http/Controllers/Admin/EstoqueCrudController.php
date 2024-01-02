@@ -10,6 +10,7 @@ use App\Http\Requests\EstoqueRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Mockery\Undefined;
 
 /**
  * Class EstoqueCrudController
@@ -137,7 +138,7 @@ class EstoqueCrudController extends CrudController
         $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
 
         $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
-        
+
         $validades = self::updateValidades(null,$estoque,$request);
         $estoque->validades = $estoque->encodeValidadesJSON($validades);
         $estoque->save();
@@ -160,23 +161,33 @@ class EstoqueCrudController extends CrudController
         $validades = $estoque->decodeValidadesJSON($estoque->validades);
         if($validades === null || empty($validades) && $request !== null){
             $validades[] = $estoque->criaArrayValidades($request->validade);
-            return $validades;
+            if($entrada === null){
+                return $validades;
+            }
         }else{
+            //dd($entrada, $estoque, $request);
             if($entrada !== null){
                 $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
                 $validade = $entrada->validade;
                 $qtdValidades = $estoque->countValidadeEntrada($entrada);
-                if ($indiceItem !== false && $qtdValidades <= 1) {
+                
+                if ($indiceItem !== false && ($qtdValidades <= 1 || ($request['total'] == 0 && $request['total'] !== null))) {
                     $validades = $estoque->removeValidade($indiceItem, $validades);
                 }
             }
-            if($request !== null){
+            if($request !== null && $request['total'] === null){
                 $indiceItem = $estoque->buscaValidadeNoArray($request->validade, $validades);
                 $validade = $request->validade;
             }
 
-            if ($indiceItem === false) {
+            if ($indiceItem === false && ($request === null || $request['total'] === null)) {
                 $validades[] = $estoque->criaArrayValidades($validade);
+            }
+
+            if ($entrada !== null && $request !== null){
+                if ($indiceItem === false && (intval($request->quantidade) != $entrada->qtdSaidas) && $request['total'] !== null) {
+                    $validades[] = $estoque->criaArrayValidades($validade);
+                }
             }
 
             if ($request !== null && $entrada === null) {

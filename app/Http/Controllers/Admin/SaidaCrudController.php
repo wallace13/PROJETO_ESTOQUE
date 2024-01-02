@@ -139,21 +139,10 @@ class SaidaCrudController extends CrudController
             $estoque = Estoque::find($entrada->estoque_id);
 
             $quantidadeNova = $estoque->atualizarQuantidadeSaida($request->quantidade, $saida->quantidade);
-            
-            $validades = $estoque->decodeValidadesJSON($estoque->validades);
-            
-            $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-            if($quantidadeNova['total'] == 0){
-                $qtdValidadesEntrada = $estoque->countValidadeEntrada($entrada);
-                if ($qtdValidadesEntrada <= 1) {
-                    $validades = $estoque->removeValidade($indiceItem, $validades);
-                }
-            }else if(intval($request->quantidade) != $entrada->qtdSaidas){
-                if ($indiceItem === false) {
-                    $validades[] = $estoque->criaArrayValidades($entrada->validade);
-                }
-            }
+            $request['total'] = $quantidadeNova['total'];
 
+            EstoqueCrudController::updateValidades($entrada, $estoque, $request);
+          
             if (intval($request->quantidade) < $saida->quantidade) {
                 $subtotal = $saida->quantidade - intval($request->quantidade);
                 $qtdSaidas = $entrada->qtdSaidas - $subtotal;
@@ -163,7 +152,7 @@ class SaidaCrudController extends CrudController
            
             $saida->update(['quantidade' => intval($request->quantidade)]);
             $entrada->update(['qtdSaidas' => $qtdSaidas]);
-            $estoque->update(['qtdTotal' => $quantidadeNova['qtdNova'], 'validades' => json_encode($validades)]);
+            $estoque->update(['qtdTotal' => $quantidadeNova['qtdNova']]);
 
             DB::commit();// Se tudo correu bem, commit na transação
             $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
