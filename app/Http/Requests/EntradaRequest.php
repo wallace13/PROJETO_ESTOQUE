@@ -29,8 +29,12 @@ class EntradaRequest extends FormRequest
         if ($this->id == null) {
             $this->qtdSaidas = 0;
         }
+        $estoqueIdRules = [
+            Rule::requiredIf($this->id == null),
+        ];
+    
         return [
-            'produto_id' =>  'required',
+            'produto_id' => $estoqueIdRules,
             'quantidade' =>  'required|numeric|min:0.01',
             'validade' =>  'required',
             'qtdSaidas' => Rule::prohibitedIf(function () {

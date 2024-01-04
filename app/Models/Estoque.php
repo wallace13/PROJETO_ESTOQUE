@@ -50,17 +50,18 @@ class Estoque extends Model
     }
     public function buscaValidadeNoArray($validadeRequest) {
         $validades = (is_array($this->validades)) ? $this->validades: json_decode($this->validades, true);
+        $resultado = ($this->array !== null)? array_search($validadeRequest, $validades):false;
 
-        return array_search($validadeRequest, $validades);
+        return $resultado;
     }
     public function adicionaValidadeNoArray($validadeRequest){
-        $validades = $this->validades;
+        $validades = (is_array($this->validades)) ? $this->validades: json_decode($this->validades, true);
         array_push($validades, $validadeRequest);
         return $validades;
     }
     
     public function removeValidade($indice) {
-        $validades = $this->validades;
+        $validades = (is_array($this->validades)) ? $this->validades: json_decode($this->validades, true);
         unset($validades[$indice]);
         return array_values($validades);
     }

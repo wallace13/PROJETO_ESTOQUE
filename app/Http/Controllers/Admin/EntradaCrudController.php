@@ -35,6 +35,7 @@ class EntradaCrudController extends CrudController
     protected function setupCreateOperation()
     {
         CRUD::setValidation(EntradaRequest::class);
+
         $produtos = Produto::orderBy('id')->get();
         $Itens = $produtos->map(function ($produto) {
             return ['id' => $produto->id, 'name' => $produto->formatted_name];
@@ -103,20 +104,24 @@ class EntradaCrudController extends CrudController
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
-        $estoqueSelecionado = Estoque::find($this->crud->getCurrentEntry()->estoque_id);
-        $produtos = Produto::orderBy('id')->get();
-        $Itens = $produtos->map(function ($produto) {
-            return ['id' => $produto->id, 'name' => $produto->formatted_name];
+
+        $estoques = Estoque::orderBy('id')->get();
+        $Itens = $estoques->map(function ($estoque) {
+            return ['id' => $estoque->id, 'name' => $estoque->produto->formatted_name];
         })->pluck('name', 'id')->toArray();
         asort($Itens);
+        
         CRUD::field([   // select_from_array
             'name'        => 'produto_id',
             'label'       => "Produto",
             'type'        => 'select_from_array',
-            'value'       => $estoqueSelecionado->produto_id, 
+            'value'       => $this->crud->getCurrentEntry()->estoque_id, 
             'options'     => $Itens,
             'allows_null' => false,
             'default'     => 'one',
+            'attributes' => [
+                'disabled'    => 'disabled',
+            ],
         ]);
         CRUD::field([  
             'label'     => "Quantidade de saidas",
@@ -130,14 +135,12 @@ class EntradaCrudController extends CrudController
         try {
             $request = $this->crud->validateRequest();
             $entrada = Entrada::find($request->id);
-
+            
             $estoqueController = new EstoqueCrudController();
             $estoque = $estoqueController->update($entrada, $request);
+            $request['estoque_id'] = $estoque;
 
-            $entrada->update(
-                ['quantidade' => $request->quantidade, 
-                'validade' => $request->validade, 
-                'estoque_id' => $estoque]);
+            $entrada->update($request->all());
 
             DB::commit();// Se tudo correu bem, commit na transação
             $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
@@ -259,7 +262,6 @@ class EntradaCrudController extends CrudController
     private function removeValidadeEQuantidadeParaEstoque($entrada, $estoque)
     {
         $estoqueController = new EstoqueCrudController();
-
         $quantidade = $entrada->countValidadeEntrada($entrada->validade);
 
         if($quantidade <= 1){

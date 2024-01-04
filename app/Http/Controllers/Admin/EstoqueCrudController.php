@@ -118,16 +118,20 @@ class EstoqueCrudController extends CrudController
     }
     public function store($request)
     {
-        $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
+        try {
+            $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
 
-        $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
+            $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
 
-        $validades = $this->verificaValidade($estoque, $request->validade);
+            $validades = $this->verificaValidade($estoque, $request->validade);
 
-        $estoque->validades = $estoque->encodeValidadesJSON($validades);
-        $estoque->save();
-        
-        return $estoque->id;
+            $estoque->validades = $estoque->encodeValidadesJSON($validades);
+            $estoque->save();
+            
+            return $estoque->id;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
     public function update($entrada, $request)
     {
@@ -142,8 +146,9 @@ class EstoqueCrudController extends CrudController
         $estoque->update([
             'qtdTotal' => $quantidadeNova,
             'validades' => $validades, 
-            'produto_id' => $request->produto_id
+            'produto_id' => $estoque->produto_id
         ]);
+        
         return $estoque->id;
     }
 
