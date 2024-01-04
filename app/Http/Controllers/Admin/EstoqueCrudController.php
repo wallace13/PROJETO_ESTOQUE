@@ -2,15 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Entrada;
 use App\Models\Estoque;
-use App\Models\Produto;
-use App\Models\Uf;
-use App\Http\Requests\EstoqueRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
-use Mockery\Undefined;
 
 /**
  * Class EstoqueCrudController
@@ -84,11 +79,7 @@ class EstoqueCrudController extends CrudController
             'label' => 'Produto',
             'type' => 'text', 
             'value' => function($entry) {
-                $estoque = Estoque::with('produto.ufs')->findOrFail($entry->id);
-                if ($estoque) {
-                    return $estoque->produto->nome; 
-                }
-                return 'Produto não encontrado';
+                return $entry->produto->nome; 
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -99,11 +90,7 @@ class EstoqueCrudController extends CrudController
             'label' => 'Uf',
             'type' => 'text',
             'value' => function($entry) {
-                $estoque = Estoque::with('produto.ufs')->findOrFail($entry->id);
-                if ($estoque) {
-                    return $estoque->produto->ufs->uf; 
-                }
-                return 'Uf não encontrado';
+                return $entry->produto->ufs->uf; 
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -114,11 +101,7 @@ class EstoqueCrudController extends CrudController
             'label' => 'Categoria',
             'type' => 'text',
             'value' => function($entry) {
-                $estoque = Estoque::with('produto.categorias')->findOrFail($entry->id);
-                if ($estoque) {
-                    return $estoque->produto->categorias->descricao; 
-                }
-                return 'Categoria não encontrado';
+                return $entry->produto->categorias->descricao; 
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -133,94 +116,96 @@ class EstoqueCrudController extends CrudController
             'visibleInModal' => true,
         ]);
     }
-    public static function store($request)
+    public function store($request)
     {
         $estoque = Estoque::firstOrNew(['produto_id' => $request->produto_id]);
 
         $estoque->qtdTotal = ($estoque->exists) ?  $estoque->qtdTotal += $request->quantidade : $request->quantidade;
 
-        $validades = self::updateValidades(null,$estoque,$request);
+        $validades = $this->verificaValidade($estoque, $request->validade);
+
         $estoque->validades = $estoque->encodeValidadesJSON($validades);
         $estoque->save();
         
         return $estoque->id;
     }
-    public static function updateEstoque($entrada, $request)
+    public function update($entrada, $request)
     {
         $estoque = Estoque::find($entrada->estoque_id);
 
         $quantidadeNova = $estoque->atualizarQuantidadeEntrada($request->quantidade, $entrada->quantidade);
 
-        self::updateValidades($entrada,$estoque,$request);
+        $this->verificaQuantidadeValidade($estoque, $entrada);
         
-        $estoque->update(['qtdTotal' => $quantidadeNova,'produto_id' => $request->produto_id]);
+        $validades = $this->verificaValidade($estoque, $request->validade);
+
+        $estoque->update([
+            'qtdTotal' => $quantidadeNova,
+            'validades' => $validades, 
+            'produto_id' => $request->produto_id
+        ]);
         return $estoque->id;
     }
-    public static function updateValidades($entrada, $estoque, $request)
-    {
-        $validades = $estoque->decodeValidadesJSON($estoque->validades);
-        if($validades === null || empty($validades) && $request !== null){
-            $validades[] = $estoque->criaArrayValidades($request->validade);
-            if($entrada === null){
-                return $validades;
-            }
-        }else{
-            //dd($entrada, $estoque, $request);
-            if($entrada !== null){
-                $indiceItem = $estoque->buscaValidadeNoArray($entrada->validade, $validades);
-                $validade = $entrada->validade;
-                $qtdValidades = $estoque->countValidadeEntrada($entrada);
-                
-                if ($indiceItem !== false && ($qtdValidades <= 1 || ($request['total'] == 0 && $request['total'] !== null))) {
-                    $validades = $estoque->removeValidade($indiceItem, $validades);
-                }
-            }
-            if($request !== null && $request['total'] === null){
-                $indiceItem = $estoque->buscaValidadeNoArray($request->validade, $validades);
-                $validade = $request->validade;
-            }
 
-            if ($indiceItem === false && ($request === null || $request['total'] === null)) {
-                $validades[] = $estoque->criaArrayValidades($validade);
-            }
+    private function verificaQuantidadeValidade($estoque, $entrada){
+        $quantidadeValidade = $entrada->countValidadeEntrada($entrada->validade);
 
-            if ($entrada !== null && $request !== null){
-                if ($indiceItem === false && (intval($request->quantidade) != $entrada->qtdSaidas) && $request['total'] !== null) {
-                    $validades[] = $estoque->criaArrayValidades($validade);
-                }
-            }
-
-            if ($request !== null && $entrada === null) {
-                return $validades;
-            }            
+        if($quantidadeValidade <= 1){
+            $this->removeValidade($estoque, $entrada->validade); 
         }
-        $estoque->where('id', $entrada->estoque_id)->update(['validades' => json_encode($validades)]);
-    }
-    public static function atualizarQuantidadesSaida($request, $entrada, $estoque)
-    {
-        $totalEntrada = $entrada->quantidade - $entrada->qtdSaidas - intval($request->input('quantidade'));
-        $totalEstoque = $estoque->qtdTotal - intval($request->input('quantidade'));
-
-        if ($totalEntrada == 0) {
-            self::updateValidades($entrada,$estoque,null);
-            $qtdSaidas = $entrada->quantidade;
-        } else {
-            $qtdSaidas = $entrada->qtdSaidas + intval($request->input('quantidade'));
-        }
-
-        $entrada->update(['qtdSaidas' => $qtdSaidas]);
-        $estoque->update(['qtdTotal' => $totalEstoque]);
     }
 
-    public static function removeQuantidade($estoque, $entrada, $saida){
-        if ($entrada != null) {
-            $quantidadeNova = $estoque->qtdTotal - $entrada->quantidade;
-        }
-        if ($saida != null) {
-            $quantidadeNova = $estoque->qtdTotal + $saida->quantidade;
+    private function readJsonValidades($estoque){
+        return $estoque->decodeValidadesJSON();
+    }
+
+    private function buscaValidade($estoque, $validadeBuscada){
+        $indiceItem = $estoque->buscaValidadeNoArray($validadeBuscada);
+        return $indiceItem;
+    }
+
+    private function verificaValidade($estoque, $validadePassada){
+        $validades = $this->readJsonValidades($estoque);
+        $resultado = $this->buscaValidade($estoque, $validadePassada);
+
+        if ($resultado === false && empty($validades)) {
+            $validades[] = $estoque->criaArrayValidades($validadePassada);
+            return $validades;
         }
 
-        $estoque->update(['qtdTotal' => $quantidadeNova]);
+        if ($resultado === false && !empty($validades)) {
+            $validadesNovas = $estoque->adicionaValidadeNoArray($validadePassada);
+            return $validadesNovas;
+        }
+        return $validades;
+    }
+    public function voltaValidade($estoque, $validadeRemovida)
+    {
+        $validades = $this->verificaValidade($estoque, $validadeRemovida);
+        $this->updateValidade($estoque, $validades);
+    }
+
+    public function removeValidade($estoque, $validadeRemovida)
+    {
+        $indiceItem = $estoque->buscaValidadeNoArray($validadeRemovida);
+        $validades = $estoque->removeValidade($indiceItem);
+        $this->updateValidade($estoque, $validades);
+    }
+
+    public function removeQuantidade($request, $estoque)
+    {
+        $totalEstoque = $estoque->removeQuantidade($request->input('quantidade'));
+        self::updateQuantidade($estoque, $totalEstoque);
+    }
+
+    private function updateValidade($estoque, $validades)
+    {
+        $estoque->update(['validades' => $validades]);
+    }
+
+    public static function updateQuantidade($estoque, $quantidade)
+    {
+        $estoque->update(['qtdTotal' => $quantidade]);
     }
             
 

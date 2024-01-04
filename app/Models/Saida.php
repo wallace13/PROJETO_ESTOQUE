@@ -60,6 +60,11 @@ class Saida extends Model
         });
 
     }
+
+    public function devolveQuantidadeSaida($quantidade){
+        $total = $quantidade + $this->quantidade;
+        return $total;
+    }
     /*
     |--------------------------------------------------------------------------
     | RELATIONS

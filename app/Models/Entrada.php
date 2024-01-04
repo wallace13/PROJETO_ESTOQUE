@@ -61,6 +61,49 @@ class Entrada extends Model
         });
 
     }
+    public function atualizarQuantidadeSaidaNaSaida($requestQuantidade, $saidaQuantidade){
+        $requestQuantidade = intval($requestQuantidade);
+        $quantidadeNova = 0;
+        $total = 0;
+        
+        if ($requestQuantidade < $saidaQuantidade) {
+            $total = $saidaQuantidade - $requestQuantidade;
+            $quantidadeNova = $this->qtdSaidas - $total;
+        } else {
+            $quantidadeNova = $this->qtdSaidas+($requestQuantidade - $saidaQuantidade);
+        }
+
+        return ["qtdNova" => $quantidadeNova,"total" => $total];        
+    }
+
+    public function removeQuantidadeEntradaEstoque($quantidade){
+        $total = $quantidade - $this->quantidade;
+        return $total;
+    }
+
+    public function removeQuantidadeEntrada($quantidade){
+        $total = $this->qtdSaidas - $quantidade;
+        return $total;
+    }
+
+    public function removeQuantidadeSaida($quantidade){
+        $total = $this->quantidade - $this->qtdSaidas - intval($quantidade);
+        return $total;
+    }
+    
+    public function atualizarQuantidadeSaidaNaEntrada($quantidade)
+    {
+        $totalEntrada = $this->removeQuantidadeSaida($quantidade);
+
+        $total = ($totalEntrada == 0) ? $this->quantidade : ($this->qtdSaidas + $quantidade);
+
+        return ["quantidade" => $total,"quantidadeSaida" => $totalEntrada];
+    }
+
+    public function countValidadeEntrada($validade) {
+        $count = Entrada::where('validade', $validade)->count();
+        return $count;
+    }
 
     /*
     |--------------------------------------------------------------------------

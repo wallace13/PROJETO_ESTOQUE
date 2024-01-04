@@ -24,16 +24,23 @@ class Estoque extends Model
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
-    protected $fillable = ['produto_id', 'qtdTotal'];
-    // protected $hidden = [];
+    protected $fillable = ['qtdTotal', 'validades', 'produto_id'];
+
+    protected $casts = [
+        'validades' => 'json', 
+    ];
 
     /*
     |--------------------------------------------------------------------------
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
-    public function decodeValidadesJSON($validades){
-        return json_decode($validades, true);
+    public function decodeValidadesJSON(){
+        // Verifica se $this->validades já é um array
+        if (is_array($this->validades)) {
+            return $this->validades;
+        }
+        return json_decode($this->validades, true);
     }
     public function encodeValidadesJSON($validades){
         return json_encode($validades);
@@ -41,22 +48,19 @@ class Estoque extends Model
     public function criaArrayValidades($validadeRequest) {
         return $validadeRequest;
     }
-    public function buscaValidadeNoArray($validadeRequest, $validades) {
+    public function buscaValidadeNoArray($validadeRequest) {
+        $validades = (is_array($this->validades)) ? $this->validades: json_decode($this->validades, true);
+
         return array_search($validadeRequest, $validades);
     }
-    public function countValidadeEntrada($request) {
-        
-        $entradas = Entrada::all();
-        $count = 0;
-        $idProduto = (intval($request->produto_id) == null) ? $request->estoque->produto_id : intval($request->produto_id);
-        foreach ($entradas as $item) {
-            if ($item->validade === $request->validade && $idProduto === $item->estoque->produto_id && $item->qtdSaidas != $item->quantidade) {
-                $count++;
-            }
-        }
-        return $count;
+    public function adicionaValidadeNoArray($validadeRequest){
+        $validades = $this->validades;
+        array_push($validades, $validadeRequest);
+        return $validades;
     }
-    public function removeValidade($indice, $validades) {
+    
+    public function removeValidade($indice) {
+        $validades = $this->validades;
         unset($validades[$indice]);
         return array_values($validades);
     }
@@ -84,8 +88,7 @@ class Estoque extends Model
         if ($requestQuantidade < $saidaQuantidade) {
             $total = $saidaQuantidade - $requestQuantidade;
             $quantidadeNova = $this->qtdTotal += $total;
-        }
-        
+        }        
 
         if ($requestQuantidade > $saidaQuantidade) {
             $subtotal = $requestQuantidade - $saidaQuantidade;
@@ -98,6 +101,10 @@ class Estoque extends Model
         }
 
         return ["qtdNova" => $quantidadeNova,"total" => $total];        
+    }
+    public function removeQuantidade($quantidade){
+        $total = $this->qtdTotal - intval($quantidade);
+        return $total;
     }
 
     protected static function boot()

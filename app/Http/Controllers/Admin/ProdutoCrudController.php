@@ -129,11 +129,7 @@ class ProdutoCrudController extends CrudController
             'label' => 'UF',
             'type' => 'text', 
             'value' => function($entry) {
-                $uf = Uf::find($entry->uf_id);
-                if ($uf) {
-                    return $uf->uf; 
-                }
-                return 'Uf não encontrado';
+                return $entry->ufs->uf; 
             },
         ]);
         CRUD::addColumn([
@@ -141,11 +137,7 @@ class ProdutoCrudController extends CrudController
             'label' => 'Categoria',
             'type' => 'text', 
             'value' => function($entry) {
-                $categoria = Categoria::find($entry->categoria_id);
-                if ($categoria) {
-                    return $categoria->descricao; 
-                }
-                return 'Uf não encontrado';
+                return $entry->categorias->descricao; 
             },
         ]);
         CRUD::addColumn([
@@ -153,11 +145,7 @@ class ProdutoCrudController extends CrudController
             'label' => 'Fornecido por',
             'type' => 'text', 
             'value' => function($entry) {
-                $fornecedor =   Fornecedor::find($entry->fornecedor_id);
-                if ($fornecedor) {
-                    return $fornecedor->razao_social; 
-                }
-                return 'Fornecedor não encontrado';
+                return $entry->fornecedores->razao_social; 
             },
         ]);
     }

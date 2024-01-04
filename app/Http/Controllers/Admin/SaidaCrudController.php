@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Estoque;
 use App\Models\Entrada;
-use App\Models\Produto;
 use App\Models\Saida;
 use App\Http\Controllers\Admin\EstoqueCrudController;
 use App\Http\Controllers\Admin\EntradaCrudController;
@@ -77,7 +76,16 @@ class SaidaCrudController extends CrudController
             $entrada = Entrada::where('id', $idEntrada)->first();
             $estoque = Estoque::where('id', $entrada->estoque_id)->first();
             
-            EstoqueCrudController::atualizarQuantidadesSaida($request, $entrada, $estoque);
+            $estoqueController = new EstoqueCrudController();
+            $estoqueController->removeQuantidade($request, $estoque);
+
+            $quantidade = $entrada->atualizarQuantidadeSaidaNaEntrada($request->input('quantidade'));
+            
+            EntradaCrudController::updateQuantidade($entrada,$quantidade['quantidade']);
+            
+            if($quantidade['quantidadeSaida'] == 0){
+                $estoqueController->removeValidade($estoque,$entrada->validade);
+            }
 
             $request['estoque_id'] = $estoque->id;
             $request['entrada_id'] = $entrada->id;
@@ -139,19 +147,18 @@ class SaidaCrudController extends CrudController
             $estoque = Estoque::find($entrada->estoque_id);
 
             $quantidadeNova = $estoque->atualizarQuantidadeSaida($request->quantidade, $saida->quantidade);
-            $request['total'] = $quantidadeNova['total'];
 
-            EstoqueCrudController::updateValidades($entrada, $estoque, $request);
-          
-            if (intval($request->quantidade) < $saida->quantidade) {
-                $subtotal = $saida->quantidade - intval($request->quantidade);
-                $qtdSaidas = $entrada->qtdSaidas - $subtotal;
-            } else {
-                $qtdSaidas = $entrada->qtdSaidas+(intval($request->quantidade) - $saida->quantidade);
+            $estoqueController = new EstoqueCrudController();
+            if($quantidadeNova['total'] == 0 || ($quantidadeNova['total'] == $entrada->quantidade)){
+                $estoqueController->removeValidade($estoque,$entrada->validade);
+            }else{
+                $estoqueController->voltaValidade($estoque, $entrada->validade);
             }
-           
+
+            $quantidadeNovaEntrada = $entrada->atualizarQuantidadeSaidaNaSaida($request->quantidade, $saida->quantidade);
+
             $saida->update(['quantidade' => intval($request->quantidade)]);
-            $entrada->update(['qtdSaidas' => $qtdSaidas]);
+            $entrada->update(['qtdSaidas' =>  $quantidadeNovaEntrada['qtdNova']]);
             $estoque->update(['qtdTotal' => $quantidadeNova['qtdNova']]);
 
             DB::commit();// Se tudo correu bem, commit na transação
@@ -201,11 +208,7 @@ class SaidaCrudController extends CrudController
             'label' => 'Produto',
             'type' => 'text', 
             'value' => function($entry) {
-                $saida = Saida::with('estoque.produto.ufs')->findOrFail($entry->id);
-                if ($saida) {
-                    return $saida->estoque->produto->nome; 
-                }
-                return 'Produto não encontrado no estoque';
+                return $entry->estoque->produto->nome; 
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -216,11 +219,18 @@ class SaidaCrudController extends CrudController
             'label' => 'Uf',
             'type' => 'text',
             'value' => function($entry) {
-                $saida = Saida::with('estoque.produto.ufs')->findOrFail($entry->id);
-                if ($saida) {
-                    return $saida->estoque->produto->ufs->uf; 
-                }
-                return 'Uf do Produto não encontrada';
+                return $entry->estoque->produto->ufs->uf;
+            },
+            'searchLogic'    => true,
+            'orderable'      => true,
+            'visibleInModal' => true,
+        ]);
+        CRUD::addColumn([
+            'name' => 'validade',
+            'label' => 'Validade',
+            'type' => 'text',
+            'value' => function($entry) {
+                return date('d/m/Y', strtotime($entry->entrada->validade));
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -242,11 +252,12 @@ class SaidaCrudController extends CrudController
             $saida = Saida::find($id);
             $entrada = Entrada::find($saida->entrada_id);
             $estoque = Estoque::find($saida->estoque_id);
-        
-            EstoqueCrudController::updateValidades($entrada, $estoque,null);
-            //Estoque/ Entrada/ Saida
-            EstoqueCrudController::removeQuantidade($estoque, null, $saida);
-            EntradaCrudController::updateQuantidade($entrada,$saida);
+
+            $this->devolverValidadeEQuantidadeParaEstoque($entrada, $estoque,$saida);
+
+            //Devolução de Quantidade saida para entrada;
+            $quantidadeNova = $entrada->removeQuantidadeEntrada($saida->quantidade);
+            $this->atualizarQuantidadeEntrada($entrada, $quantidadeNova);
 
             $saida->delete();
             DB::commit();// Se tudo correu bem, commit na transação
@@ -256,6 +267,20 @@ class SaidaCrudController extends CrudController
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
         }
+    }
+
+    private function devolverValidadeEQuantidadeParaEstoque($entrada, $estoque, $saida)
+    {
+        $estoqueController = new EstoqueCrudController();
+        $estoqueController->voltaValidade($estoque, $entrada->validade);
+
+        $quantidade = $saida->devolveQuantidadeSaida($estoque->qtdTotal);
+        $estoqueController->updateQuantidade($estoque, $quantidade);
+    }
+
+    private function atualizarQuantidadeEntrada($entrada, $quantidadeNova)
+    {
+        EntradaCrudController::updateQuantidade($entrada, $quantidadeNova);
     }
 }
 

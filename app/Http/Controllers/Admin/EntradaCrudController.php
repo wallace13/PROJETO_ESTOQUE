@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Estoque;
 use App\Models\Entrada;
 use App\Models\Produto;
-use App\Models\Uf;
 use App\Http\Controllers\Admin\EstoqueCrudController;
 use App\Http\Requests\EntradaRequest;
-use App\Http\Requests\EstoqueRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -76,7 +74,8 @@ class EntradaCrudController extends CrudController
         try {
             $request = $this->crud->validateRequest();
 
-            $request['estoque_id'] = EstoqueCrudController::store($request);
+            $estoqueController = new EstoqueCrudController();
+            $request['estoque_id'] = $estoqueController->store($request);
 
             $entry = $this->crud->create($request->except(['_token', '_method']));
 
@@ -132,7 +131,8 @@ class EntradaCrudController extends CrudController
             $request = $this->crud->validateRequest();
             $entrada = Entrada::find($request->id);
 
-            $estoque = EstoqueCrudController::updateEstoque($entrada, $request);
+            $estoqueController = new EstoqueCrudController();
+            $estoque = $estoqueController->update($entrada, $request);
 
             $entrada->update(
                 ['quantidade' => $request->quantidade, 
@@ -188,11 +188,7 @@ class EntradaCrudController extends CrudController
             'label' => 'Produto',
             'type' => 'text', 
             'value' => function($entry) {
-                $entrada = Entrada::with('estoque.produto.ufs')->findOrFail($entry->id);
-                if ($entrada) {
-                    return $entrada->estoque->produto->nome;
-                }
-                return 'Produto não encontrado no estoque';
+                return $entry->estoque->produto->nome;
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -203,11 +199,7 @@ class EntradaCrudController extends CrudController
             'label' => 'Uf',
             'type' => 'text',
             'value' => function($entry) {
-                $entrada = Entrada::with('estoque.produto.ufs')->findOrFail($entry->id);
-                if ($entrada) {
-                    return $entrada->estoque->produto->ufs->uf; 
-                }
-                return 'Uf do Produto não encontrada';
+                return $entry->estoque->produto->ufs->uf; 
             },
             'searchLogic'    => true,
             'orderable'      => true,
@@ -238,9 +230,8 @@ class EntradaCrudController extends CrudController
             'visibleInModal' => true,
         ]);
     }
-    public static function updateQuantidade($entrada, $saida){
-        $NovaQuantidade = $entrada->qtdSaidas - $saida->quantidade;
-        $entrada->update(['qtdSaidas' => $NovaQuantidade]);
+    public static function updateQuantidade($entrada, $quantidade){
+        $entrada->update(['qtdSaidas' => $quantidade]);
     }
 
     public function cancelarEntrada($id){
@@ -249,10 +240,10 @@ class EntradaCrudController extends CrudController
             $entrada = Entrada::find($id);
             $estoque = Estoque::find($entrada->estoque_id);
             if($entrada->qtdSaidas == 0){
-                EstoqueCrudController::updateValidades($entrada, $estoque,null);
-                //Estoque/ Entrada/ Saida
-                EstoqueCrudController::removeQuantidade($estoque, $entrada, null);
+
+                $this->removeValidadeEQuantidadeParaEstoque($entrada, $estoque);
                 $entrada->delete();
+
                 DB::commit();// Se tudo correu bem, commit na transação
                 \Alert::success("Entrada cancelada com sucesso")->flash();
                 return redirect("/admin/entrada");
@@ -264,5 +255,18 @@ class EntradaCrudController extends CrudController
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
         }
+    }
+    private function removeValidadeEQuantidadeParaEstoque($entrada, $estoque)
+    {
+        $estoqueController = new EstoqueCrudController();
+
+        $quantidade = $entrada->countValidadeEntrada($entrada->validade);
+
+        if($quantidade <= 1){
+            $estoqueController->removeValidade($estoque, $entrada->validade); 
+        }
+
+        $quantidade = $entrada->removeQuantidadeEntradaEstoque($estoque->qtdTotal);
+        $estoqueController->updateQuantidade($estoque, $quantidade);
     }
 }
