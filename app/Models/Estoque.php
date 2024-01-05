@@ -5,8 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
-use App\Services\ActivityLogger;
+use App\Services\ActivityLoggingService;
 
 class Estoque extends Model
 {
@@ -50,8 +49,8 @@ class Estoque extends Model
     }
     public function buscaValidadeNoArray($validadeRequest) {
         $validades = (is_array($this->validades)) ? $this->validades: json_decode($this->validades, true);
-        $resultado = ($this->array !== null)? array_search($validadeRequest, $validades):false;
-
+        
+        $resultado = ($this->validades !== null)? array_search($validadeRequest, $validades):false;
         return $resultado;
     }
     public function adicionaValidadeNoArray($validadeRequest){
@@ -111,23 +110,14 @@ class Estoque extends Model
     protected static function boot()
     {
         parent::boot();
-        // Exemplo de registro de atividade no método 'created'
-        static::created(function ($estoque) {
-            $causador = backpack_auth()->user();
-            $eventName = 'created';
-            $descricao = "Nova estoque criado por {$causador->name}";
-            ActivityLogger::logActivity($estoque, $eventName, $causador, $descricao,static::$logName,$estoque->attributes);
-        });
 
-        // Exemplo de registro de atividade no método 'updated'
-        static::updated(function ($estoque) {
-            $causador = backpack_auth()->user();
-            $eventName = 'updated';
-            $descricao = "Estoque atualizado por {$causador->name}";
-            ActivityLogger::logActivity($estoque, $eventName, $causador, $descricao,static::$logName,$estoque->attributes);
-        });
+        static::created(fn($estoque) => ActivityLoggingService::logActivity($estoque, 'created', static::$logName));
 
+        static::updated(fn($estoque) => ActivityLoggingService::logActivity($estoque, 'updated', static::$logName));
+
+        static::deleted(fn($estoque) => ActivityLoggingService::logActivity($estoque, 'deleted', static::$logName));
     }
+
 
     /*
     |--------------------------------------------------------------------------

@@ -1,8 +1,6 @@
 <?php
 namespace App\Services;
 
-use Spatie\Activitylog\Models\Activity;
-
 class ActivityLogger
 {
     public static function logActivity($model, $eventName, $causador, $descricao, $logName, $attributes)

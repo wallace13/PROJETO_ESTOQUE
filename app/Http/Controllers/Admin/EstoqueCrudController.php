@@ -153,7 +153,7 @@ class EstoqueCrudController extends CrudController
     }
 
     private function verificaQuantidadeValidade($estoque, $entrada){
-        $quantidadeValidade = $entrada->countValidadeEntrada($entrada->validade);
+        $quantidadeValidade = $entrada->countValidadeEntrada($entrada->validade, $entrada->estoque_id);
 
         if($quantidadeValidade <= 1){
             $this->removeValidade($estoque, $entrada->validade); 
@@ -172,7 +172,7 @@ class EstoqueCrudController extends CrudController
     private function verificaValidade($estoque, $validadePassada){
         $validades = $this->readJsonValidades($estoque);
         $resultado = $this->buscaValidade($estoque, $validadePassada);
-
+       
         if ($resultado === false && empty($validades)) {
             $validades[] = $estoque->criaArrayValidades($validadePassada);
             return $validades;

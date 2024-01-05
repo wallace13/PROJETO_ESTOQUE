@@ -5,7 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\ActivityLogger;
+use App\Services\ActivityLoggingService;
 
 class Categoria extends Model
 {
@@ -31,33 +31,16 @@ class Categoria extends Model
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
+    
     protected static function boot()
     {
         parent::boot();
-        // Exemplo de registro de atividade no método 'created'
-        static::created(function ($categorias) {
-            $causador = backpack_auth()->user();
-            $eventName = 'created';
-            $descricao = "Novo categoria criado por {$causador->name}";
-            ActivityLogger::logActivity($categorias, $eventName, $causador, $descricao,static::$logName,$categorias->attributes);
-        });
 
-        // Exemplo de registro de atividade no método 'updated'
-        static::updated(function ($categorias) {
-            $causador = backpack_auth()->user();
-            $eventName = 'updated';
-            $descricao = "Categoria atualizado por {$causador->name}";
-            ActivityLogger::logActivity($categorias, $eventName, $causador, $descricao,static::$logName,$categorias->attributes);
-        });
+        static::created(fn($categorias) => ActivityLoggingService::logActivity($categorias, 'created', static::$logName));
 
-        // Exemplo de registro de atividade no método 'deleted'
-        static::deleted(function ($categorias) {
-            $causador = backpack_auth()->user();
-            $eventName = 'deleted';
-            $descricao = "Categoria excluído por {$causador->name}";
-            ActivityLogger::logActivity($categorias, $eventName, $causador, $descricao,static::$logName,$categorias->attributes);
-        });
+        static::updated(fn($categorias) => ActivityLoggingService::logActivity($categorias, 'updated', static::$logName));
 
+        static::deleted(fn($categorias) => ActivityLoggingService::logActivity($categorias, 'deleted', static::$logName));
     }
 
     /*

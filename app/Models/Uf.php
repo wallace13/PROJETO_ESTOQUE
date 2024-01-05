@@ -5,7 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\ActivityLogger;
+use App\Services\ActivityLoggingService;
 
 class Uf extends Model
 {
@@ -35,31 +35,14 @@ class Uf extends Model
     protected static function boot()
     {
         parent::boot();
-        // Exemplo de registro de atividade no método 'created'
-        static::created(function ($uf) {
-            $causador = backpack_auth()->user();
-            $eventName = 'created';
-            $descricao = "Novo uf criado por {$causador->name}";
-            ActivityLogger::logActivity($uf, $eventName, $causador, $descricao,static::$logName,$uf->attributes);
-        });
 
-        // Exemplo de registro de atividade no método 'updated'
-        static::updated(function ($uf) {
-            $causador = backpack_auth()->user();
-            $eventName = 'updated';
-            $descricao = "UF atualizado por {$causador->name}";
-            ActivityLogger::logActivity($uf, $eventName, $causador, $descricao,static::$logName,$uf->attributes);
-        });
+        static::created(fn($uf) => ActivityLoggingService::logActivity($uf, 'created', static::$logName));
 
-        // Exemplo de registro de atividade no método 'deleted'
-        static::deleted(function ($uf) {
-            $causador = backpack_auth()->user();
-            $eventName = 'deleted';
-            $descricao = "UF excluído por {$causador->name}";
-            ActivityLogger::logActivity($uf, $eventName, $causador, $descricao,static::$logName,$uf->attributes);
-        });
+        static::updated(fn($uf) => ActivityLoggingService::logActivity($uf, 'updated', static::$logName));
 
+        static::deleted(fn($uf) => ActivityLoggingService::logActivity($uf, 'deleted', static::$logName));
     }
+
 
     /*
     |--------------------------------------------------------------------------

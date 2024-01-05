@@ -5,7 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\ActivityLogger;
+use App\Services\ActivityLoggingService;
 
 class Saida extends Model
 {
@@ -35,30 +35,12 @@ class Saida extends Model
     protected static function boot()
     {
         parent::boot();
-        // Exemplo de registro de atividade no método 'created'
-        static::created(function ($saida) {
-            $causador = backpack_auth()->user();
-            $eventName = 'created';
-            $descricao = "Nova saida criado por {$causador->name}";
-            ActivityLogger::logActivity($saida, $eventName, $causador, $descricao,static::$logName,$saida->attributes);
-        });
 
-        // Exemplo de registro de atividade no método 'updated'
-        static::updated(function ($saida) {
-            $causador = backpack_auth()->user();
-            $eventName = 'updated';
-            $descricao = "Saida atualizado por {$causador->name}";
-            ActivityLogger::logActivity($saida, $eventName, $causador, $descricao,static::$logName,$saida->attributes);
-        });
+        static::created(fn($saida) => ActivityLoggingService::logActivity($saida, 'created', static::$logName));
 
-        // Exemplo de registro de atividade no método 'deleted'
-        static::deleted(function ($saida) {
-            $causador = backpack_auth()->user();
-            $eventName = 'deleted';
-            $descricao = "Saida excluído por {$causador->name}";
-            ActivityLogger::logActivity($saida, $eventName, $causador, $descricao,static::$logName,$saida->attributes);
-        });
+        static::updated(fn($saida) => ActivityLoggingService::logActivity($saida, 'updated', static::$logName));
 
+        static::deleted(fn($saida) => ActivityLoggingService::logActivity($saida, 'deleted', static::$logName));
     }
 
     public function devolveQuantidadeSaida($quantidade){

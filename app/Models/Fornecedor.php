@@ -5,7 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\ActivityLogger;
+use App\Services\ActivityLoggingService;
 
 class Fornecedor extends Model
 {
@@ -39,30 +39,12 @@ class Fornecedor extends Model
     protected static function boot()
     {
         parent::boot();
-        // Exemplo de registro de atividade no método 'created'
-        static::created(function ($fornecedores) {
-            $causador = backpack_auth()->user();
-            $eventName = 'created';
-            $descricao = "Novo fornecedor criado por {$causador->name}";
-            ActivityLogger::logActivity($fornecedores, $eventName, $causador, $descricao,static::$logName,$fornecedores->attributes);
-        });
 
-        // Exemplo de registro de atividade no método 'updated'
-        static::updated(function ($fornecedores) {
-            $causador = backpack_auth()->user();
-            $eventName = 'updated';
-            $descricao = "Fornecedor atualizado por {$causador->name}";
-            ActivityLogger::logActivity($fornecedores, $eventName, $causador, $descricao,static::$logName,$fornecedores->attributes);
-        });
+        static::created(fn($fornecedores) => ActivityLoggingService::logActivity($fornecedores, 'created', static::$logName));
 
-        // Exemplo de registro de atividade no método 'deleted'
-        static::deleted(function ($fornecedores) {
-            $causador = backpack_auth()->user();
-            $eventName = 'deleted';
-            $descricao = "Fornecedor excluído por {$causador->name}";
-            ActivityLogger::logActivity($fornecedores, $eventName, $causador, $descricao,static::$logName,$fornecedores->attributes);
-        });
+        static::updated(fn($fornecedores) => ActivityLoggingService::logActivity($fornecedores, 'updated', static::$logName));
 
+        static::deleted(fn($fornecedores) => ActivityLoggingService::logActivity($fornecedores, 'deleted', static::$logName));
     }
 
     public function getCnpjAttribute($value)

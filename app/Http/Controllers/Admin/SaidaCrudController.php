@@ -11,6 +11,7 @@ use App\Http\Requests\SaidaRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use App\Services\RedirectorService;
 
 class SaidaCrudController extends CrudController
 {
@@ -93,23 +94,11 @@ class SaidaCrudController extends CrudController
             $entry = $this->crud->create($request->except(['_token', '_method'])); 
 
             DB::commit();// Se tudo correu bem, commit na transação
-            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
+            $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $entry, 'saida');
             return $rota;
         } catch (\Exception $e) {
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
-        }
-    }
-
-    public function redirecionamentoRotas($saveAction,$entry){
-        if ($saveAction === 'save_and_back') {
-            return redirect("/admin/saida");
-        } elseif ($saveAction === 'save_and_edit') {
-            return redirect("/admin/saida/{$entry->id}/edit");
-        } elseif ($saveAction === 'save_and_preview') {
-            return redirect("/admin/saida/{$entry->id}/show");
-        }elseif ($saveAction === 'save_and_new') {
-            return redirect("/admin/saida/create");
         }
     }
 
@@ -162,7 +151,7 @@ class SaidaCrudController extends CrudController
             $estoque->update(['qtdTotal' => $quantidadeNova['qtdNova']]);
 
             DB::commit();// Se tudo correu bem, commit na transação
-            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
+            $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $request, 'saida');
             return $rota;
         } catch (\Exception $e) {
             DB::rollback();// Se ocorrer uma exceção, reverta a transação

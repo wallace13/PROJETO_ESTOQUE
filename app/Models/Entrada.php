@@ -5,7 +5,7 @@ namespace App\Models;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\ActivityLogger;
+use App\Services\ActivityLoggingService;
 
 class Entrada extends Model
 {
@@ -36,30 +36,12 @@ class Entrada extends Model
     protected static function boot()
     {
         parent::boot();
-        // Exemplo de registro de atividade no método 'created'
-        static::created(function ($entrada) {
-            $causador = backpack_auth()->user();
-            $eventName = 'created';
-            $descricao = "Nova entrada criado por {$causador->name}";
-            ActivityLogger::logActivity($entrada, $eventName, $causador, $descricao,static::$logName,$entrada->attributes);
-        });
 
-        // Exemplo de registro de atividade no método 'updated'
-        static::updated(function ($entrada) {
-            $causador = backpack_auth()->user();
-            $eventName = 'updated';
-            $descricao = "Entrada atualizado por {$causador->name}";
-            ActivityLogger::logActivity($entrada, $eventName, $causador, $descricao,static::$logName,$entrada->attributes);
-        });
+        static::created(fn($entrada) => ActivityLoggingService::logActivity($entrada, 'created', static::$logName));
 
-        // Exemplo de registro de atividade no método 'deleted'
-        static::deleted(function ($entrada) {
-            $causador = backpack_auth()->user();
-            $eventName = 'deleted';
-            $descricao = "Entrada excluído por {$causador->name}";
-            ActivityLogger::logActivity($entrada, $eventName, $causador, $descricao,static::$logName,$entrada->attributes);
-        });
+        static::updated(fn($entrada) => ActivityLoggingService::logActivity($entrada, 'updated', static::$logName));
 
+        static::deleted(fn($entrada) => ActivityLoggingService::logActivity($entrada, 'deleted', static::$logName));
     }
     public function atualizarQuantidadeSaidaNaSaida($requestQuantidade, $saidaQuantidade){
         $requestQuantidade = intval($requestQuantidade);
@@ -100,8 +82,9 @@ class Entrada extends Model
         return ["quantidade" => $total,"quantidadeSaida" => $totalEntrada];
     }
 
-    public function countValidadeEntrada($validade) {
-        $count = Entrada::where('validade', $validade)->count();
+    public function countValidadeEntrada($validade,$idEstoque) {
+        
+        $count = Entrada::where('validade', $validade)->where('estoque_id', $idEstoque)->count();
         return $count;
     }
 

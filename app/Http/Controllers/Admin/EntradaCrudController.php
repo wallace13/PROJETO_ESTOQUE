@@ -10,6 +10,7 @@ use App\Http\Requests\EntradaRequest;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use App\Services\RedirectorService;
 
 class EntradaCrudController extends CrudController
 {
@@ -81,26 +82,13 @@ class EntradaCrudController extends CrudController
             $entry = $this->crud->create($request->except(['_token', '_method']));
 
             DB::commit();// Se tudo correu bem, commit na transação
-            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $entry);
+            $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $entry, 'entrada');
             return $rota;
         } catch (\Exception $e) {
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
         }
     }
-
-    public function redirecionamentoRotas($saveAction,$entry){
-        if ($saveAction === 'save_and_back') {
-            return redirect("/admin/entrada");
-        } elseif ($saveAction === 'save_and_edit') {
-            return redirect("/admin/entrada/{$entry->id}/edit");
-        } elseif ($saveAction === 'save_and_preview') {
-            return redirect("/admin/entrada/{$entry->id}/show");
-        }elseif ($saveAction === 'save_and_new') {
-            return redirect("/admin/entrada/create");
-        }
-    }
-
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
@@ -143,7 +131,7 @@ class EntradaCrudController extends CrudController
             $entrada->update($request->all());
 
             DB::commit();// Se tudo correu bem, commit na transação
-            $rota = $this->redirecionamentoRotas($request->get('_save_action'), $request);
+            $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $request, 'entrada');
             return $rota;
         } catch (\Exception $e) {
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
@@ -262,8 +250,8 @@ class EntradaCrudController extends CrudController
     private function removeValidadeEQuantidadeParaEstoque($entrada, $estoque)
     {
         $estoqueController = new EstoqueCrudController();
-        $quantidade = $entrada->countValidadeEntrada($entrada->validade);
-
+        $quantidade = $entrada->countValidadeEntrada($entrada->validade, $entrada->estoque_id);
+        
         if($quantidade <= 1){
             $estoqueController->removeValidade($estoque, $entrada->validade); 
         }
