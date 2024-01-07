@@ -25,19 +25,24 @@ class TelefoneRequest extends FormRequest
     public function rules()
     {
         return [
-            // 'name' => 'required|min:5|max:255'
+            'tipo_telefone' =>  'required',
+            'ddd' =>  'required',
+            'numero_telefone' =>  'required',
         ];
     }
 
     /**
      * Get the validation attributes that apply to the request.
+     * 
      *
      * @return array
      */
     public function attributes()
     {
         return [
-            //
+            'tipo_telefone' =>  'Tipo',
+            'ddd' =>  'DDD',
+            'numero_telefone' =>  'Telefone',
         ];
     }
 
@@ -49,7 +54,7 @@ class TelefoneRequest extends FormRequest
     public function messages()
     {
         return [
-            //
+            'required' => "O campo :attribute é obrigatorio.",
         ];
     }
 }

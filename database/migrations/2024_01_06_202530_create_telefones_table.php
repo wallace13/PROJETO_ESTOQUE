@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('tipo_telefone');
             $table->string('ddd', 5);
             $table->string('numero_telefone');
+            $table->unsignedBigInteger('user_id'); 
+            $table->foreign('user_id')->references('id')->on('users');  
             $table->timestamps();
         });
     }

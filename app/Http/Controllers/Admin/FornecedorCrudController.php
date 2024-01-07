@@ -194,6 +194,13 @@ class FornecedorCrudController extends CrudController
             'tab' => 'Contato',
         ]);
         for ($i=0; $i < 3; $i++) { 
+            CRUD::addField([
+                'name'       => "id_{$i}",
+                'label'      => 'id',
+                'type'       => 'hidden',
+                'tab'        => 'Contato',
+                'value'       => (isset($this->crud->getCurrentEntry()->telefones[$i]->id)) ? $this->crud->getCurrentEntry()->telefones[$i]->id : '',
+            ]);
             CRUD::addField([   
                 'name'        => "tipo_telefone_{$i}",
                 'label'       => ($i > 0) ? 'Tipo de Telefone (Opcional)' : 'Tipo de Telefone',
@@ -204,6 +211,7 @@ class FornecedorCrudController extends CrudController
                     '2' => 'Celular',
                 ],
                 'tab' => 'Contato',
+                'value'       => (isset($this->crud->getCurrentEntry()->telefones[$i]->tipo_telefone)) ? $this->crud->getCurrentEntry()->telefones[$i]->tipo_telefone : '',
                 'wrapper'     => [
                     'class' => 'form-group col-md-4', // Defina a largura desejada
                 ],
@@ -213,6 +221,7 @@ class FornecedorCrudController extends CrudController
                 'label'      => ($i > 0) ? 'DDD (Opcional)' : 'DDD',
                 'type'       => 'text',
                 'tab'        => 'Contato',
+                'value'       => (isset($this->crud->getCurrentEntry()->telefones[$i]->ddd)) ? $this->crud->getCurrentEntry()->telefones[$i]->ddd : '',
                 'wrapper'     => [
                     'class' => 'form-group col-md-2', // Defina a largura desejada
                 ],
@@ -225,6 +234,7 @@ class FornecedorCrudController extends CrudController
                 'label'      => ($i > 0) ? 'Número (Opcional)' : 'Número',
                 'type'       => 'text',
                 'tab'        => 'Contato',
+                'value'       => (isset($this->crud->getCurrentEntry()->telefones[$i]->numero_telefone)) ? $this->crud->getCurrentEntry()->telefones[$i]->numero_telefone : '',
                 'wrapper'     => [
                     'class' => 'form-group col-md-6', // Defina a largura desejada
                 ],
@@ -419,17 +429,8 @@ class FornecedorCrudController extends CrudController
             $request = $this->crud->validateRequest();
 
             $entry = $this->crud->create($request->except(['_token', '_method']));
-            $i = 0;
-            while ($i < 3) {
-                $tipo = $request->input("tipo_telefone_{$i}");
-                $ddd = $request->input("ddd_{$i}");
-                $numero = $request->input("numero_telefone_{$i}");
-                if (isset($tipo) && isset($ddd) && isset($numero)) {
-                    $telefoneController = new TelefoneCrudController();
-                    $telefoneController->store($tipo,$ddd,$numero,$entry->id);
-                }
-                $i++;
-            }
+            
+            $this->gerenciaTelefone($request, $entry->id);
 
             DB::commit();// Se tudo correu bem, commit na transação
             $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $entry, 'fornecedor');
@@ -437,6 +438,46 @@ class FornecedorCrudController extends CrudController
         } catch (\Exception $e) {
             DB::rollback();// Se ocorrer uma exceção, reverta a transação
             throw $e;
+        }
+    }
+
+    public function update()
+    {
+        DB::beginTransaction();// Inicia a transação do banco de dados
+        try {
+            $request = $this->crud->validateRequest();
+            
+            $this->gerenciaTelefone($request, $request->id);
+
+            $fornecedor = Fornecedor::find($request->id);
+            $fornecedor->update($request->all());
+
+            DB::commit();// Se tudo correu bem, commit na transação
+            $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $request, 'fornecedor');
+            return $rota;
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
+        }
+        
+    }
+
+    public function gerenciaTelefone($request, $idFornecedor){
+        $telefoneController = new TelefoneCrudController();
+        $i = 0;
+        while ($i < 3) {
+            $tipo = $request->input("tipo_telefone_{$i}");
+            $ddd = $request->input("ddd_{$i}");
+            $numero = $request->input("numero_telefone_{$i}");
+            $idTelefone = $request->input("id_{$i}");
+
+            if (isset($tipo) && isset($ddd) && isset($numero) && $idTelefone === null) {
+                $telefoneController->store($tipo,$ddd,$numero,$idFornecedor);
+            }
+            if($idTelefone !== null){
+                $telefoneController->updateTelefoneFornecedor($tipo,$ddd,$numero,$idFornecedor,$idTelefone);
+            }
+            $i++;
         }
     }
 }

@@ -29,13 +29,33 @@ class Telefone extends Model
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
+    public function getTipoTelefoneFormattedAttribute()
+    {
+        switch ($this->attributes['tipo_telefone']) {
+            case '0':
+                return "Telefone";
+            case '1':
+                return "Comercial";
+            case '2':
+                return "Celular";
+            default:
+                return "Não Encontrado";
+        }
+    }
+    public function getNumeroFormattedAttribute()
+    {
+        return "(".$this->attributes['ddd'].") ".$this->attributes['numero_telefone'];
+    }
 
     /*
     |--------------------------------------------------------------------------
     | RELATIONS
     |--------------------------------------------------------------------------
     */
-
+    public function users(){
+        return $this->belongsTo(User::class,'user_id','id');
+    }
+    
     public function fornecedores(){
         return $this->belongsTo(Fornecedor::class,'fornecedor_id','id');
     }

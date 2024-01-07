@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\TelefoneRequest;
 use App\Models\Telefone;
+use Illuminate\Support\Facades\Auth;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
@@ -40,7 +41,73 @@ class TelefoneCrudController extends CrudController
      */
     protected function setupListOperation()
     {
-        CRUD::setFromDb(); 
+        //CRUD::setFromDb(); 
+        CRUD::addColumn([
+            'name' => 'fornecedor_id',
+            'label' => 'Fornecedor',
+            'type' => 'text', 
+            'value' => function($entry) {
+                return $entry->fornecedores->razao_social;
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'responsavel',
+            'label' => 'Responsável',
+            'type' => 'text', 
+            'value' => function($entry) {
+                return $entry->fornecedores->responsavel_legal;
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'tipo_telefone',
+            'label' => 'Tipo',
+            'type' => 'text', 
+            'value' => function($entry) {
+                $resultado = $entry->getTipoTelefoneFormattedAttribute();
+                return $resultado;
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'numero_telefone',
+            'label' => 'Número',
+            'type' => 'text', 
+            'value' => function($entry) {
+                $resultado = $entry->getNumeroFormattedAttribute();
+                return $resultado;
+            },
+        ]);
+    }
+    protected function setupShowOperation()
+    {
+        $this->setupListOperation();
+        CRUD::addColumn([
+            'name' => 'user_id',
+            'label' => 'Criado por',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                $user = Telefone::with('users')->findOrFail($entry->id);
+                if ($user) {
+                    return $user->users->name; 
+                }
+                return 'Usuário não encontrada';
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'created_at',
+            'label' => 'Criado em',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                return date('d/m/Y H:i', strtotime($entry->created_at));
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'updated_at',
+            'label' => 'Última Edição',
+            'type' => 'text', 
+            'value' => function ($entry) {
+                return date('d/m/Y H:i', strtotime($entry->updated_at));
+            },
+        ]);
     }
 
     /**
@@ -52,18 +119,37 @@ class TelefoneCrudController extends CrudController
     protected function setupCreateOperation()
     {
         CRUD::setValidation(TelefoneRequest::class);
-        CRUD::setFromDb();
+        CRUD::addField([   
+            'name'        => 'user_id',
+            'label'       => 'Id Usuario',
+            'type' => 'hidden',
+        ]);
+        CRUD::addField([   
+            'name'        => 'fornecedor_id',
+            'label'       => 'Id Fornecedor',
+            'type' => 'hidden',
+        ]);
         CRUD::addField([   
             'name'        => 'tipo_telefone',
             'label'       => 'Tipo de Telefone',
             'type' => 'select_from_array',
-            'default'     => 'null',
+            'default'     => '',
             'options' => [
-                'null'  => 'Selecione o tipo',
+                ''  => 'Selecione o tipo',
                 '0' => 'Telefone',
                 '1' => 'Comercial',
                 '2' => 'Celular',
             ],
+        ]);
+        CRUD::addField([   
+            'name'        => 'ddd',
+            'label'       => 'DDD',
+            'type' => 'text',
+        ]);
+        CRUD::addField([   
+            'name'        => 'numero_telefone',
+            'label'       => 'Número Telefone',
+            'type' => 'text',
         ]);
     }
 
@@ -80,7 +166,25 @@ class TelefoneCrudController extends CrudController
     public function store($tipo, $ddd, $numero, $idFornecedor)
     {
         try {
+            $user_id = backpack_auth()->user()->id;
+
             Telefone::create([
+                'tipo_telefone' => $tipo,
+                'ddd' => $ddd, 
+                'numero_telefone' => $numero,
+                'fornecedor_id' => $idFornecedor,
+                'user_id'          => $user_id, 
+            ]);
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+    public function updateTelefoneFornecedor($tipo,$ddd,$numero,$idFornecedor,$idTelefone)
+    {
+        try {
+            $telefone = Telefone::find($idTelefone);
+
+            $telefone->update([
                 'tipo_telefone' => $tipo,
                 'ddd' => $ddd, 
                 'numero_telefone' => $numero,
