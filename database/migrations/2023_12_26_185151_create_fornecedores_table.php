@@ -25,8 +25,8 @@ return new class extends Migration
             $table->string('cidade');
             $table->string('estado');
             $table->string('cep');
-            $table->string('telefone');
             $table->string('email');
+            $table->string('email_opcional')->nullable();
             $table->string('responsavel_legal');
             $table->date('data_fundacao')->nullable();
             $table->enum('situacao_cadastral', ['ativa', 'inativa'])->default('ativa');

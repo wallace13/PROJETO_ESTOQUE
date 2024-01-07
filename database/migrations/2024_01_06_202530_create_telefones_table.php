@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categorias', function (Blueprint $table) {
+        Schema::create('telefones', function (Blueprint $table) {
             $table->id();
-            $table->string('descricao');
-            $table->unsignedBigInteger('user_id'); 
-            $table->foreign('user_id')->references('id')->on('users');  
+            $table->unsignedBigInteger('fornecedor_id');
+            $table->foreign('fornecedor_id')->references('id')->on('fornecedores')->onDelete('cascade');
+            $table->string('tipo_telefone');
+            $table->string('ddd', 5);
+            $table->string('numero_telefone');
             $table->timestamps();
         });
     }
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categorias');
+        Schema::dropIfExists('telefones');
     }
 };

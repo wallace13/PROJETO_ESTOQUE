@@ -45,7 +45,9 @@ class FornecedorRequest extends FormRequest
             'cidade' =>  'required',
             'estado' =>  'required',
             'cep' =>  'required',
-            'telefone' =>  'required',
+            'tipo_telefone_0' =>  'required',
+            'ddd_0' =>  'required',
+            'numero_telefone_0' =>  'required',
             'email' =>  'required|email',
             'responsavel_legal' =>  'required|alpha',
             'situacao_cadastral' =>  'required',
@@ -69,7 +71,9 @@ class FornecedorRequest extends FormRequest
             'cidade' =>  'Cidade',
             'estado' =>  'Estado',
             'cep' =>  'CEP',
-            'telefone' =>  'Telefone',
+            'tipo_telefone_0' =>  'Tipo',
+            'ddd_0' =>  'DDD',
+            'numero_telefone_0' =>  'Telefone',
             'email' =>  'E-mail',
             'responsavel_legal' =>  'Responsável Legal',
             'situacao_cadastral' =>  'Situação Cadastral',
@@ -88,7 +92,7 @@ class FornecedorRequest extends FormRequest
             'email' => "O campo deve ser um :attribute valido.",
             'alpha' => ":attribute inválido, informe um nome válido",
             'unique' => 'O :attribute já está cadastrado.',
-            'size' => ':attribute inválido'
+            'size' => ':attribute inválido',
         ];
     }
 }

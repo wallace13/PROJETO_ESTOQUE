@@ -9,3 +9,5 @@
 <x-backpack::menu-item title="Fornecedores" icon="la la-industry" :link="backpack_url('fornecedor')" />
 <x-backpack::menu-item title="Atividades de Log" icon="la la-file-alt" :link="backpack_url('activitylog')" />
 
+
+<x-backpack::menu-item title="Telefones" icon="la la-question" :link="backpack_url('telefone')" />

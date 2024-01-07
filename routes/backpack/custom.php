@@ -31,4 +31,5 @@ Route::group([
     Route::get('uf/{id}/remover', 'UfCrudController@remover');
     Route::crud('categoria', 'CategoriaCrudController');
     Route::crud('fornecedor', 'FornecedorCrudController');
+    Route::crud('telefone', 'TelefoneCrudController');
 }); 

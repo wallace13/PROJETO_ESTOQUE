@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\FornecedorRequest;
 use App\Models\Fornecedor;
+use App\Http\Controllers\Admin\TelefoneCrudController;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Illuminate\Support\Facades\DB;
+use App\Services\RedirectorService;
 
 /**
  * Class FornecedorCrudController
@@ -190,18 +193,55 @@ class FornecedorCrudController extends CrudController
             ],
             'tab' => 'Contato',
         ]);
-        CRUD::addField([
-            'name'       => 'telefone',
-            'label'      => 'Telefone',
-            'type'       => 'text',
-            'attributes' => [
-                'placeholder' => 'Digite o telefone',
-            ],
-            'tab'        => 'Contato',
-        ]);
+        for ($i=0; $i < 3; $i++) { 
+            CRUD::addField([   
+                'name'        => "tipo_telefone_{$i}",
+                'label'       => ($i > 0) ? 'Tipo de Telefone (Opcional)' : 'Tipo de Telefone',
+                'type' => 'select_from_array',
+                'options' => [
+                    '0' => 'Telefone',
+                    '1' => 'Comercial',
+                    '2' => 'Celular',
+                ],
+                'tab' => 'Contato',
+                'wrapper'     => [
+                    'class' => 'form-group col-md-4', // Defina a largura desejada
+                ],
+            ]);
+            CRUD::addField([
+                'name'       => "ddd_{$i}",
+                'label'      => ($i > 0) ? 'DDD (Opcional)' : 'DDD',
+                'type'       => 'text',
+                'tab'        => 'Contato',
+                'wrapper'     => [
+                    'class' => 'form-group col-md-2', // Defina a largura desejada
+                ],
+                'attributes' => [
+                    'maxlength' => 2, // Adiciona a regra de tamanho máximo
+                ],
+            ]);
+            CRUD::addField([
+                'name'       => "numero_telefone_{$i}",
+                'label'      => ($i > 0) ? 'Número (Opcional)' : 'Número',
+                'type'       => 'text',
+                'tab'        => 'Contato',
+                'wrapper'     => [
+                    'class' => 'form-group col-md-6', // Defina a largura desejada
+                ],
+            ]);
+        }
         CRUD::addField([   
             'name'        => 'email',
             'label'       => 'E-mail',
+            'type'        => 'email',
+            'attributes'  => [
+                'placeholder' => 'Digite o e-mail',
+            ],
+            'tab' => 'Contato',
+        ]);
+        CRUD::addField([   
+            'name'        => 'email_opcional',
+            'label'       => 'E-mail (Opcional)',
             'type'        => 'email',
             'attributes'  => [
                 'placeholder' => 'Digite o e-mail',
@@ -248,7 +288,28 @@ class FornecedorCrudController extends CrudController
         CRUD::addColumn([
             'name' => 'telefone',
             'label' => 'Telefone',
-            'type' => 'text'
+            'type' => 'text',
+            'value' => function($entry) {
+                return "({$entry->telefones[0]->ddd}) ".$entry->telefones[0]->numero_telefone; 
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'telefone1',
+            'label' => 'Telefone',
+            'type' => 'text',
+            'value' => function($entry) {
+                $resultado = (isset($entry->telefones[1]->ddd)) ? "({$entry->telefones[1]->ddd}) ".$entry->telefones[1]->numero_telefone : "Não Informado" ;
+                return $resultado; 
+            },
+        ]);
+        CRUD::addColumn([
+            'name' => 'telefone2',
+            'label' => 'Telefone',
+            'type' => 'text',
+            'value' => function($entry) {
+                $resultado = (isset($entry->telefones[2]->ddd)) ? "({$entry->telefones[2]->ddd}) ".$entry->telefones[2]->numero_telefone : "Não Informado" ;
+                return $resultado; 
+            },
         ]);
         CRUD::addColumn([
             'name' => 'email',
@@ -350,5 +411,32 @@ class FornecedorCrudController extends CrudController
                 return date('d/m/Y H:i', strtotime($entry->updated_at));
             },
         ]);
+    }
+    public function store()
+    {
+        DB::beginTransaction();// Inicia a transação do banco de dados
+        try {
+            $request = $this->crud->validateRequest();
+
+            $entry = $this->crud->create($request->except(['_token', '_method']));
+            $i = 0;
+            while ($i < 3) {
+                $tipo = $request->input("tipo_telefone_{$i}");
+                $ddd = $request->input("ddd_{$i}");
+                $numero = $request->input("numero_telefone_{$i}");
+                if (isset($tipo) && isset($ddd) && isset($numero)) {
+                    $telefoneController = new TelefoneCrudController();
+                    $telefoneController->store($tipo,$ddd,$numero,$entry->id);
+                }
+                $i++;
+            }
+
+            DB::commit();// Se tudo correu bem, commit na transação
+            $rota = RedirectorService::redirecionamentoRotas($request->get('_save_action'), $entry, 'fornecedor');
+            return $rota;
+        } catch (\Exception $e) {
+            DB::rollback();// Se ocorrer uma exceção, reverta a transação
+            throw $e;
+        }
     }
 }

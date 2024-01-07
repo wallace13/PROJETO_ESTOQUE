@@ -79,6 +79,11 @@ class Fornecedor extends Model
         return $this->belongsTo(User::class,'user_id','id');
     }
 
+    public function telefones()
+    {
+        return $this->hasMany(Telefone::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES
