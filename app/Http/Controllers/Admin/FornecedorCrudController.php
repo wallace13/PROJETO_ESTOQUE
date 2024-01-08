@@ -35,6 +35,7 @@ class FornecedorCrudController extends CrudController
         CRUD::setEntityNameStrings('fornecedor', 'fornecedores');
     }
 
+
     /**
      * Define what happens when the List operation is loaded.
      * 
@@ -308,6 +309,8 @@ class FornecedorCrudController extends CrudController
             'label' => 'Telefone',
             'type' => 'text',
             'value' => function($entry) {
+                
+                
                 $resultado = (isset($entry->telefones[1]->ddd)) ? "({$entry->telefones[1]->ddd}) ".$entry->telefones[1]->numero_telefone : "Não Informado" ;
                 return $resultado; 
             },

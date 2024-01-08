@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use App\Services\RedirectorService;
+use PhpParser\Node\Stmt\Return_;
 
 class EntradaCrudController extends CrudController
 {
@@ -258,5 +259,11 @@ class EntradaCrudController extends CrudController
 
         $quantidade = $entrada->removeQuantidadeEntradaEstoque($estoque->qtdTotal);
         $estoqueController->updateQuantidade($estoque, $quantidade);
+    }
+
+    public function getQuatindadeDisponivel($idEntrada){
+        $entrada = Entrada::find($idEntrada);
+        $resultado = $entrada->quantidade - $entrada->qtdSaidas;
+        return $resultado;
     }
 }

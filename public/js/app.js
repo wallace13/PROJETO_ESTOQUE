@@ -69,6 +69,83 @@ for (var i = 0; i < quantidadeCampos; i++) {
     aplicarMascara(campoTipo, campoNumero, campoDDD, tipoSalvo);
   }
 }
+$(document).ready(function () {
+  // Evento de mudança no select
+  $('select[name="estoque_id"]').on('change', function () {
+    // Obter o valor selecionado no select
+    var selectedOption = $(this).val();
+    if (selectedOption > 0) {
+      // Fazer uma chamada Ajax para obter as validades
+      $.ajax({
+        url: 'http://localhost/admin/estoque/' + selectedOption + '/produto',
+        // Substitua com o caminho para o seu script no servidor
+        type: 'GET',
+        data: {
+          estoque_id: selectedOption
+        },
+        success: function success(data) {
+          // Limpar opções atuais no select
+          $('select[name="validades"]').empty();
+
+          // Adicionar uma opção padrão
+          $('select[name="validades"]').append('<option value="">Escolha uma data de validade</option>');
+
+          // Iterar sobre as datas e adicionar opções ao select
+          for (var i = 0; i < data.length; i++) {
+            var formattedDate = new Date(data[i]['validade']).toLocaleDateString('pt-BR');
+            $('select[name="validades"]').append('<option value="' + data[i]['entrada_id'] + '">' + formattedDate + '</option>');
+          }
+          $('select[name="validades"]').prop('disabled', false);
+        },
+        error: function error() {
+          console.log('Erro ao obter dados do servidor');
+        }
+      });
+    }
+  });
+});
+$(document).ready(function () {
+  // Evento de mudança no select "validades"
+  $('select[name="validades"]').on('change', function () {
+    // Obter o valor selecionado no select
+    var selectedDate = $(this).val();
+    if (selectedDate) {
+      // Fazer uma chamada Ajax para obter a quantidade associada à data de validade
+      $.ajax({
+        url: 'http://localhost/admin/entrada/' + selectedDate + '/produto',
+        type: 'GET',
+        data: {
+          entrada_id: selectedDate
+        },
+        success: function success(data) {
+          // Atualizar o campo de quantidade disponível com os dados recebidos
+          $('input[name="quantidadedisponivel"]').val(data);
+        },
+        error: function error() {
+          console.log('Erro ao obter dados do servidor');
+        }
+      });
+    }
+  });
+});
+$(document).ready(function () {
+  // Evento de mudança no select
+  $('select[name="estoque_id"]').on('change', function () {
+    var selectValidades = $('select[name="validades"]');
+    selectValidades.empty();
+    selectValidades.append('<option value="">Escolha uma data de validade</option>');
+    selectValidades.prop('disabled', true); // Desabilitar o campo quando não há opção selecionada
+    var inputQuantidade = $('input[name="quantidadedisponivel"]');
+    inputQuantidade.val('');
+  });
+});
+$(document).ready(function () {
+  // Evento de mudança no select
+  $('select[name="validades"]').on('change', function () {
+    var inputQuantidade = $('input[name="quantidadedisponivel"]');
+    inputQuantidade.val('');
+  });
+});
 
 /***/ }),
 

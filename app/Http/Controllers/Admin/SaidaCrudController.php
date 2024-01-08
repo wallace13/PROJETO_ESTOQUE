@@ -8,6 +8,7 @@ use App\Models\Saida;
 use App\Http\Controllers\Admin\EstoqueCrudController;
 use App\Http\Controllers\Admin\EntradaCrudController;
 use App\Http\Requests\SaidaRequest;
+use App\Models\Produto;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -37,12 +38,19 @@ class SaidaCrudController extends CrudController
     protected function setupCreateOperation()
     {
         CRUD::setValidation(SaidaRequest::class);
+        /*
         $produtos = Entrada::with('estoque.produto.ufs')->get();
         $Itens = $produtos->map(function ($produto) {
             if($produto->quantidade != $produto->qtdSaidas){
                 return ['id' => $produto->id, 'name' => $produto->estoque->produto->nome.' - '.$produto->estoque->produto->ufs->uf.' - '.date('d/m/Y', strtotime($produto->validade)).' - QTD: '.($produto->quantidade-$produto->qtdSaidas)];
             }            
+        })->pluck('name', 'id')->toArray();*/
+
+        $produtos = Estoque::with('produto.ufs')->get();
+        $Itens = $produtos->map(function ($produto) {
+            return ['id' => $produto->produto_id, 'name' => $produto->produto->nome.' - '.$produto->produto->ufs->uf];          
         })->pluck('name', 'id')->toArray();
+
         asort($Itens);
         CRUD::field([   // select_from_array
             'name'        => 'estoque_id',//Aqui ele pega o id da entrada
@@ -52,7 +60,25 @@ class SaidaCrudController extends CrudController
             'allows_null' => false,
             'default'     => 'one',
         ]);
-        
+        CRUD::field([   
+            'name'        => 'validades',
+            'label'       => 'Validade',
+            'type'        => 'select_from_array',
+            'options'     => [null => 'Escolha uma data de validade'],
+            'allows_null' => false,
+            'default'     => 'one',
+            'attributes' => [
+                'disabled'    => 'disabled',
+            ]
+        ]);
+        CRUD::field([  
+            'label'     => "Quantidade Disponivel",
+            'type'      => 'text',
+            'name'      => 'quantidadedisponivel',
+            'attributes' => [
+                'disabled'    => 'disabled',
+            ]
+        ]);
         CRUD::field([  
             'label'     => "Quantidade",
             'type'      => 'text',

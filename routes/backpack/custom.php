@@ -32,4 +32,7 @@ Route::group([
     Route::crud('categoria', 'CategoriaCrudController');
     Route::crud('fornecedor', 'FornecedorCrudController');
     Route::crud('telefone', 'TelefoneCrudController');
+
+    Route::get('estoque/{id}/produto', 'EstoqueCrudController@getEstoqueValidades');
+    Route::get('entrada/{id}/produto', 'EntradaCrudController@getQuatindadeDisponivel');
 }); 
