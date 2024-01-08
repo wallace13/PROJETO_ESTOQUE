@@ -38,7 +38,7 @@ class SaidaCrudController extends CrudController
     {
         CRUD::setValidation(SaidaRequest::class);
 
-        $produtos = Estoque::with('produto.ufs')->get();
+        $produtos = Estoque::with('produto.ufs')->where('qtdTotal', '>' , 0)->get();
         $Itens = $produtos->map(function ($produto) {
             return ['id' => $produto->produto_id, 'name' => $produto->produto->nome.' - '.$produto->produto->ufs->uf];          
         })->pluck('name', 'id')->toArray();
@@ -194,7 +194,7 @@ class SaidaCrudController extends CrudController
 
             $quantidadeNovaEntrada = $entrada->atualizarQuantidadeSaidaNaSaida($request->quantidade, $saida->quantidade);
 
-            $saida->update(['quantidade' => intval($request->quantidade)]);
+            $saida->update(['quantidade' => floatval($request->quantidade)]);
             $entrada->update(['qtdSaidas' =>  $quantidadeNovaEntrada['qtdNova']]);
             $estoque->update(['qtdTotal' => $quantidadeNova['qtdNova']]);
 

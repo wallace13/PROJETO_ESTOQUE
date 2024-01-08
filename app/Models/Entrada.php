@@ -44,7 +44,7 @@ class Entrada extends Model
         static::deleted(fn($entrada) => ActivityLoggingService::logActivity($entrada, 'deleted', static::$logName));
     }
     public function atualizarQuantidadeSaidaNaSaida($requestQuantidade, $saidaQuantidade){
-        $requestQuantidade = intval($requestQuantidade);
+        $requestQuantidade = floatval($requestQuantidade);
         $quantidadeNova = 0;
         $total = 0;
         
@@ -69,7 +69,7 @@ class Entrada extends Model
     }
 
     public function removeQuantidadeSaida($quantidade){
-        $total = $this->quantidade - $this->qtdSaidas - intval($quantidade);
+        $total = $this->quantidade - $this->qtdSaidas - floatval($quantidade);
         return $total;
     }
     
@@ -86,6 +86,19 @@ class Entrada extends Model
         
         $count = Entrada::where('validade', $validade)->where('estoque_id', $idEstoque)->count();
         return $count;
+    }
+
+    public function verificaQtdSaida(){
+        if ($this->qtdSaidas !== null) {
+            return $this->qtdSaidas;
+        } 
+        return 0;
+    }
+
+    public function verificaQtdRestante(){
+        $quantidade = $this->verificaQtdSaida();
+        $resultado =  $this->quantidade - $quantidade;
+        return $resultado;
     }
 
     /*

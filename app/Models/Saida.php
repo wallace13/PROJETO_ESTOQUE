@@ -47,6 +47,23 @@ class Saida extends Model
         $total = $quantidade + $this->quantidade;
         return $total;
     }
+
+    public function verificaQuantidade($entrada, $requestQuantidadeSaida,$saida){
+        $requestQuantidade = floatval($requestQuantidadeSaida);
+        $quantidadeRestante = $entrada->verificaQtdRestante();
+
+        if ($requestQuantidade > $saida->quantidade) {
+            return $quantidadeRestante + $saida->quantidade;
+        }
+
+        if($requestQuantidade === $entrada->quantidade){
+            return $entrada->quantidade;
+        }else{
+            $subtotal = $saida->quantidade - $requestQuantidade;
+            return $quantidadeRestante + $subtotal;
+        }
+
+    }
     /*
     |--------------------------------------------------------------------------
     | RELATIONS

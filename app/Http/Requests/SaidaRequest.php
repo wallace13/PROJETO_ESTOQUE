@@ -29,34 +29,26 @@ class SaidaRequest extends FormRequest
     {
         $qtdMax = 0;
         $quantidade = $this->quantidade ?? null;
-        if($quantidade != null){  
-            if($this->produto_id > 0){
-                $entrada = Entrada::where('id',$this->entrada_id)->get();
-                $quantidadeSaidas = ($entrada[0]->qtdSaidas === null) ? 0 : $entrada[0]->qtdSaidas;
-                if($this->id != null){
-                    $saida = Saida::where('id', $this->id)->get();
-                    if (intval($quantidade) > $saida[0]->quantidade) {
-                        $qtdMax = ($entrada[0]->quantidade  - $quantidadeSaidas) + $saida[0]->quantidade;
+        if ($this->entrada_id != null) {
+            $entrada = Entrada::where('id',$this->entrada_id)->get();
+            if($quantidade != null){  
+                if($this->produto_id > 0){
+                    if($this->id != null){
+                        $saida = Saida::where('id',$this->id)->get();
+                        $qtdMax = $saida[0]->verificaQuantidade($entrada[0], $quantidade, $saida[0]);
                     }else {
-                        if($quantidadeSaidas === $entrada[0]->quantidade){
-                            $qtdMax = $entrada[0]->quantidade;
-                        }else {
-                            $subtotal = $saida[0]->quantidade - intval($quantidade);
-                            $qtdMax = $entrada[0]->quantidade - $quantidadeSaidas + $subtotal;
-                        }
+                        $qtdMax = $entrada[0]->verificaQtdRestante();
                     }
-                }else {
-                    $qtdMax = $entrada[0]->quantidade - $quantidadeSaidas;
                 }
-            }else{
-                "";
             }
         }
+        
         return [
             'produto_id' =>  'required',
             'quantidade' =>  "required|numeric|min:0.01|max:{$qtdMax}",
         ];
         
+
     }
 
     /**
@@ -80,12 +72,14 @@ class SaidaRequest extends FormRequest
     public function messages()
     {
         $entrada = Entrada::where('id',$this->entrada_id)->get();
-        $quantidadeSaidas = ($entrada[0]->qtdSaidas === null) ? 0 : $entrada[0]->qtdSaidas;
+        $quantidadeSaidas = $entrada[0]->verificaQtdRestante();
+
         if($this->id != null && $quantidadeSaidas == $this->qtdSaida){
             $mensagem = "A :attribute de saída não pode ser superior à quantidade da saida disponivel.";
         }else {
             $mensagem = "A :attribute de saída não pode ser superior à quantidade total da entrada no estoque.";
         }
+
         return [
             'required' => "O campo :attribute é obrigatorio.",
             'min' => "O campo :attribute não pode ser menor que 0 e nem ser 0.",

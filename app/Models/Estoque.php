@@ -65,7 +65,7 @@ class Estoque extends Model
         return array_values($validades);
     }
     public function atualizarQuantidadeEntrada($requestQuantidade, $entradaQuantidade){
-        $requestQuantidade = intval($requestQuantidade);
+        $requestQuantidade = floatval($requestQuantidade);
         
         if ($requestQuantidade > $entradaQuantidade) {
             $total = $requestQuantidade - $entradaQuantidade;
@@ -81,7 +81,7 @@ class Estoque extends Model
     }
     
     public function atualizarQuantidadeSaida($requestQuantidade, $saidaQuantidade){
-        $requestQuantidade = intval($requestQuantidade);
+        $requestQuantidade = floatval($requestQuantidade);
         $quantidadeNova = 0;
         $total = 0;
 
@@ -103,7 +103,7 @@ class Estoque extends Model
         return ["qtdNova" => $quantidadeNova,"total" => $total];        
     }
     public function removeQuantidade($quantidade){
-        $total = $this->qtdTotal - intval($quantidade);
+        $total = $this->qtdTotal - floatval($quantidade);
         return $total;
     }
 
