@@ -29,26 +29,31 @@ class SaidaRequest extends FormRequest
     {
         $qtdMax = 0;
         $quantidade = $this->quantidade ?? null;
-        if($quantidade != null){            
-            $entrada = Entrada::where('id', $this->estoque_id)->get();
-            if($this->id != null){
-                $saida = Saida::where('id', $this->id)->get();
-                if (intval($quantidade) > $saida[0]->quantidade) {
-                    $qtdMax = ($entrada[0]->quantidade  - $entrada[0]->qtdSaidas) + $saida[0]->quantidade;
-                }else {
-                    if($entrada[0]->qtdSaidas === $entrada[0]->quantidade){
-                        $qtdMax = $entrada[0]->qtdSaidas;
+        if($quantidade != null){  
+            if($this->produto_id > 0){
+                $entrada = Entrada::where('id',$this->entrada_id)->get();
+                $quantidadeSaidas = ($entrada[0]->qtdSaidas === null) ? 0 : $entrada[0]->qtdSaidas;
+                if($this->id != null){
+                    $saida = Saida::where('id', $this->id)->get();
+                    if (intval($quantidade) > $saida[0]->quantidade) {
+                        $qtdMax = ($entrada[0]->quantidade  - $quantidadeSaidas) + $saida[0]->quantidade;
                     }else {
-                        $subtotal = $saida[0]->quantidade - intval($quantidade);
-                        $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas + $subtotal;
+                        if($quantidadeSaidas === $entrada[0]->quantidade){
+                            $qtdMax = $entrada[0]->quantidade;
+                        }else {
+                            $subtotal = $saida[0]->quantidade - intval($quantidade);
+                            $qtdMax = $entrada[0]->quantidade - $quantidadeSaidas + $subtotal;
+                        }
                     }
+                }else {
+                    $qtdMax = $entrada[0]->quantidade - $quantidadeSaidas;
                 }
-            }else {
-                $qtdMax = $entrada[0]->quantidade - $entrada[0]->qtdSaidas;
+            }else{
+                "";
             }
         }
         return [
-            'estoque_id' =>  'required',
+            'produto_id' =>  'required',
             'quantidade' =>  "required|numeric|min:0.01|max:{$qtdMax}",
         ];
         
@@ -74,10 +79,11 @@ class SaidaRequest extends FormRequest
      */
     public function messages()
     {
-        $estoque = Entrada::where('id', $this->estoque_id)->get();
-        if($this->id != null && $estoque[0]->qtdSaida == $this->qtdSaida){
+        $entrada = Entrada::where('id',$this->entrada_id)->get();
+        $quantidadeSaidas = ($entrada[0]->qtdSaidas === null) ? 0 : $entrada[0]->qtdSaidas;
+        if($this->id != null && $quantidadeSaidas == $this->qtdSaida){
             $mensagem = "A :attribute de saída não pode ser superior à quantidade da saida disponivel.";
-        }else{
+        }else {
             $mensagem = "A :attribute de saída não pode ser superior à quantidade total da entrada no estoque.";
         }
         return [

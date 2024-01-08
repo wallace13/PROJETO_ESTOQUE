@@ -8,7 +8,6 @@ use App\Models\Saida;
 use App\Http\Controllers\Admin\EstoqueCrudController;
 use App\Http\Controllers\Admin\EntradaCrudController;
 use App\Http\Requests\SaidaRequest;
-use App\Models\Produto;
 use Illuminate\Support\Facades\DB;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -46,7 +45,7 @@ class SaidaCrudController extends CrudController
 
         asort($Itens);
         CRUD::field([   // select_from_array
-            'name'        => 'estoque_id',//Aqui ele pega o id da entrada
+            'name'        => 'produto_id',//Aqui ele pega o id da entrada
             'label'       => "Produto",
             'type'        => 'select_from_array',
             'options'     => [null => 'Escolha um produto'] +$Itens,
@@ -85,6 +84,10 @@ class SaidaCrudController extends CrudController
             'allows_null' => false,
             'default'     => 'one',
         ]); 
+        CRUD::field([
+            'name'  => 'entrada_id',//Aqui ele pega o id da entrada
+            'type'  => 'hidden',
+        ]);
     }
 
     public function store()
@@ -92,9 +95,10 @@ class SaidaCrudController extends CrudController
         DB::beginTransaction();// Inicia a transação do banco de dados
         try {
             $request = $this->crud->validateRequest();
-            $idEntrada = $request->estoque_id;
-            $entrada = Entrada::where('id', $idEntrada)->first();
-            $estoque = Estoque::where('id', $entrada->estoque_id)->first();
+            
+            $estoque = Estoque::where('produto_id', $request->produto_id)->first();
+            
+            $entrada = Entrada::where('id', $request->entrada_id)->first();
             
             $estoqueController = new EstoqueCrudController();
             $estoqueController->removeQuantidade($request, $estoque);
@@ -108,7 +112,6 @@ class SaidaCrudController extends CrudController
             }
 
             $request['estoque_id'] = $estoque->id;
-            $request['entrada_id'] = $entrada->id;
 
             $entry = $this->crud->create($request->except(['_token', '_method'])); 
 
@@ -125,26 +128,21 @@ class SaidaCrudController extends CrudController
     {
         CRUD::setValidation(SaidaRequest::class);
         $saida = Saida::with('estoque.produto.ufs')->findOrFail($this->crud->getCurrentEntry()->id);
+
         CRUD::field([   // select_from_array
             'name'        => 'estoque_id_disable',//Aqui ele pega o id da entrada
             'label'       => "Produto",
-            'type'        => 'select_from_array',
-            'value'       => $saida->entrada_id, 
-            'options'     => [$saida->estoque->produto->nome.' - '.$saida->estoque->produto->ufs->uf.' - '.date('d/m/Y', strtotime($saida->entrada->validade))],
-            'allows_null' => false,
-            'default'     => 'one',
+            'type'        => 'text',
+            'value'       => $saida->estoque->produto->nome.' - '.$saida->estoque->produto->ufs->uf.' - '.date('d/m/Y', strtotime($saida->entrada->validade)),
             'attributes' => [
                 'disabled'    => 'disabled',
-            ],
+            ]
         ]);  
         CRUD::field([   
             'name'        => 'validades',
             'label'       => 'Validade',
-            'type'        => 'select_from_array',
-            'value'       => $saida->entrada_id, 
-            'options'     => [date('d/m/Y', strtotime($saida->entrada->validade))],
-            'allows_null' => false,
-            'default'     => 'one',
+            'type'        => 'text',
+            'value'       => date('d/m/Y', strtotime($saida->entrada->validade)),
             'attributes' => [
                 'disabled'    => 'disabled',
             ]
@@ -164,9 +162,14 @@ class SaidaCrudController extends CrudController
             'name'      => 'quantidade',
         ]);  
         CRUD::field([
-            'name'  => 'estoque_id',//Aqui ele pega o id da entrada
+            'name'  => 'entrada_id',//Aqui ele pega o id da entrada
             'type'  => 'hidden',
             'value' => $saida->entrada_id,
+        ]);
+        CRUD::field([
+            'name'  => 'produto_id',//Aqui ele pega o id da entrada
+            'type'  => 'hidden',
+            'value' => $saida->estoque->produto_id,
         ]);
 
 
@@ -177,8 +180,8 @@ class SaidaCrudController extends CrudController
         try {
             $request = $this->crud->validateRequest();
             $saida = Saida::find($request->id);
-            $entrada = Entrada::find($request->estoque_id);//estoque_id na real é a entrada id
-            $estoque = Estoque::find($entrada->estoque_id);
+            $entrada = Entrada::find($saida->entrada_id);
+            $estoque = Estoque::find($saida->estoque_id);
 
             $quantidadeNova = $estoque->atualizarQuantidadeSaida($request->quantidade, $saida->quantidade);
 

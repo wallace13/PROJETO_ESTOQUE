@@ -212,22 +212,16 @@ class EstoqueCrudController extends CrudController
     {
         $estoque->update(['qtdTotal' => $quantidade]);
     }
-    /*
-    public function getEstoqueValidades($produto_id){
-        $estoque = Estoque::find(['produto_id' => $produto_id]);
-        return  json_decode($estoque[0]->validades);
-    }*/
             
     public function getEstoqueValidades($produto_id){
         $estoques = Estoque::find(['produto_id' => $produto_id]);
         $validades = [];
-    
         foreach ($estoques as $estoque) {
             foreach ($estoque->entradas as $entrada) {
                 if($entrada->quantidade != $entrada->qtdSaidas){
                     $validades[] = [
                         'validade' => $entrada->validade,
-                        'entrada_id' => $entrada->id,
+                        'produto_id' => $entrada->id,
                     ];
                 }
             }

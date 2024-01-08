@@ -263,7 +263,13 @@ class EntradaCrudController extends CrudController
 
     public function getQuatindadeDisponivel($idEntrada){
         $entrada = Entrada::find($idEntrada);
-        $resultado = $entrada->quantidade - $entrada->qtdSaidas;
-        return $resultado;
+
+        if ($entrada !== null) {
+            $quantidadeSaidas = ($entrada->qtdSaidas === null) ? 0 : $entrada->qtdSaidas;
+            $resultado = $entrada->quantidade - $quantidadeSaidas;
+            return $resultado;
+        } else {
+            return 0;
+        }
     }
 }
