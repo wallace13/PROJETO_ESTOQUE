@@ -38,13 +38,6 @@ class SaidaCrudController extends CrudController
     protected function setupCreateOperation()
     {
         CRUD::setValidation(SaidaRequest::class);
-        /*
-        $produtos = Entrada::with('estoque.produto.ufs')->get();
-        $Itens = $produtos->map(function ($produto) {
-            if($produto->quantidade != $produto->qtdSaidas){
-                return ['id' => $produto->id, 'name' => $produto->estoque->produto->nome.' - '.$produto->estoque->produto->ufs->uf.' - '.date('d/m/Y', strtotime($produto->validade)).' - QTD: '.($produto->quantidade-$produto->qtdSaidas)];
-            }            
-        })->pluck('name', 'id')->toArray();*/
 
         $produtos = Estoque::with('produto.ufs')->get();
         $Itens = $produtos->map(function ($produto) {
@@ -130,6 +123,7 @@ class SaidaCrudController extends CrudController
 
     protected function setupUpdateOperation()
     {
+        CRUD::setValidation(SaidaRequest::class);
         $saida = Saida::with('estoque.produto.ufs')->findOrFail($this->crud->getCurrentEntry()->id);
         CRUD::field([   // select_from_array
             'name'        => 'estoque_id_disable',//Aqui ele pega o id da entrada
@@ -143,7 +137,32 @@ class SaidaCrudController extends CrudController
                 'disabled'    => 'disabled',
             ],
         ]);  
-        $this->setupCreateOperation();
+        CRUD::field([   
+            'name'        => 'validades',
+            'label'       => 'Validade',
+            'type'        => 'select_from_array',
+            'value'       => $saida->entrada_id, 
+            'options'     => [date('d/m/Y', strtotime($saida->entrada->validade))],
+            'allows_null' => false,
+            'default'     => 'one',
+            'attributes' => [
+                'disabled'    => 'disabled',
+            ]
+        ]);
+        CRUD::field([  
+            'label'     => "Quantidade Disponivel",
+            'type'      => 'text',
+            'name'      => 'quantidadedisponivel',
+            'value'     => (($saida->entrada->quantidade - $saida->entrada->qtdSaidas) == 0) ? $saida->quantidade : ($saida->entrada->quantidade - $saida->entrada->qtdSaidas),
+            'attributes' => [
+                'disabled'    => 'disabled',
+            ]
+        ]);
+        CRUD::field([  
+            'label'     => "Quantidade",
+            'type'      => 'text',
+            'name'      => 'quantidade',
+        ]);  
         CRUD::field([
             'name'  => 'estoque_id',//Aqui ele pega o id da entrada
             'type'  => 'hidden',
